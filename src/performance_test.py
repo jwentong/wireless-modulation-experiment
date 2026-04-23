@@ -42,22 +42,18 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     elif modulation_scheme == '16QAM':
         modulate_func = qam16_modulate
         demodulate_func = qam16_demodulate
+        bits_per_symbol = 4
     else:
         raise ValueError(f"不支持的调制方式: {modulation_scheme}")
+    if modulation_scheme == 'BPSK':
+        bits_per_symbol = 1
+    elif modulation_scheme == 'QPSK':
+        bits_per_symbol = 2
     
     # 对每个SNR值进行测试
     for snr_db in snr_range:
-        # TODO: 完成性能测试的主循环
-        # 提示步骤：
-        # 1. 生成随机比特序列
-        # 2. 调制
-        # 3. 添加AWGN噪声
-        # 4. 解调
-        # 5. 计算BER
-        # 6. 将BER添加到ber_values列表
-        
-        # 你的代码：
-        bits_tx = generate_random_bits(num_bits)
+        effective_num_bits = (num_bits // bits_per_symbol) * bits_per_symbol
+        bits_tx = generate_random_bits(effective_num_bits)
         symbols = modulate_func(bits_tx)
         symbols_rx = add_awgn(symbols, snr_db)
         bits_rx = demodulate_func(symbols_rx)
