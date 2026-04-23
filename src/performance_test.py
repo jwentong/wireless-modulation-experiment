@@ -112,10 +112,12 @@ def compare_modulations():
         plt.legend(fontsize=11)
         plt.grid(True, which='both', alpha=0.3)
         
-        os.makedirs('results', exist_ok=True)
-        filepath = os.path.join('results', 'ber_comparison.png')
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        results_dir = os.path.join(repo_root, 'results')
+        os.makedirs(results_dir, exist_ok=True)
+        filepath = os.path.join(results_dir, 'ber_comparison.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"\n✅ 性能对比图已保存到: {filepath}")
+        print(f"\nBER performance comparison plot saved to: {filepath}")
         
         plt.close()
         
