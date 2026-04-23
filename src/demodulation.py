@@ -35,10 +35,10 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    symbols = np.asarray(symbols)
+    # 实部 > 0 -> 比特 0；实部 <= 0 -> 比特 1
+    bits = np.where(np.real(symbols) > 0, 0, 1).astype(int)
+    return bits
 
 
 def qpsk_demodulate(symbols):
@@ -72,21 +72,19 @@ def qpsk_demodulate(symbols):
         >>> print(bits)  # 应该是 [0, 0, 0, 1]
     """
     
-    # 定义QPSK参考星座点（格雷码）
-    constellation = {
-        0: (1 + 1j) / np.sqrt(2),    # 00
-        1: (-1 + 1j) / np.sqrt(2),   # 01
-        3: (-1 - 1j) / np.sqrt(2),   # 11
-        2: (1 - 1j) / np.sqrt(2)     # 10
-    }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+    symbols = np.asarray(symbols)
+
+    # 基于格雷码的快速判决（等价于最小欧氏距离）：
+    #   I 路：实部 > 0 -> b1 = 0，否则 b1 = 1
+    #   Q 路：虚部 > 0 -> b2 = 0，否则 b2 = 1
+    # 对应映射：00->(1+1j), 01->(-1+1j), 11->(-1-1j), 10->(1-1j)
+    b1 = np.where(np.real(symbols) > 0, 0, 1)
+    b2 = np.where(np.imag(symbols) > 0, 0, 1)
+
+    bits = np.empty(2 * len(symbols), dtype=int)
+    bits[0::2] = b1
+    bits[1::2] = b2
+    return bits
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +112,36 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+    symbols = np.asarray(symbols)
+
+    # 反归一化（发射端除以了 sqrt(10)）
+    scaled = symbols * np.sqrt(10)
+    i_vals = np.real(scaled)
+    q_vals = np.imag(scaled)
+
+    # 将 I/Q 分别判决到 {-3, -1, +1, +3}
+    def decide_level(x):
+        # 阈值 -2、0、+2（对应 -3/-1/+1/+3 的中点）
+        level = np.where(x >= 2, 3,
+                 np.where(x >= 0, 1,
+                 np.where(x >= -2, -1, -3)))
+        return level
+
+    i_level = decide_level(i_vals)
+    q_level = decide_level(q_vals)
+
+    # 反格雷码：+3->00, +1->01, -1->11, -3->10
+    inv_gray = {3: (0, 0), 1: (0, 1), -1: (1, 1), -3: (1, 0)}
+
+    bits = np.empty(4 * len(symbols), dtype=int)
+    for idx, (iv, qv) in enumerate(zip(i_level, q_level)):
+        ib1, ib2 = inv_gray[int(iv)]
+        qb1, qb2 = inv_gray[int(qv)]
+        bits[4 * idx] = ib1
+        bits[4 * idx + 1] = ib2
+        bits[4 * idx + 2] = qb1
+        bits[4 * idx + 3] = qb2
+    return bits
 
 
 def test_demodulation():
