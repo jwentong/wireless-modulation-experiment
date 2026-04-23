@@ -7,6 +7,7 @@ import numpy as np
 from utils import plot_constellation
 
 
+
 def bpsk_modulate(bits):
     """
     BPSK (Binary Phase Shift Keying) 调制
@@ -42,10 +43,9 @@ def bpsk_modulate(bits):
     # 方法2: 使用数学运算 1 - 2*bits
     # 方法3: 使用字典映射
     
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    # 使用数学运算将0映射为+1，1映射为-1，并转换为复数类型
+    symbols = (1 - 2 * bits).astype(np.complex128)
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -84,16 +84,19 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
+    # 将比特序列分组，每2个比特对应一个符号
+    bit_pairs = bits.reshape(-1, 2)
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    # 格雷码映射：00、01、11、10
+    symbol_map = {
+        (0, 0): (1 + 1j) / np.sqrt(2),
+        (0, 1): (-1 + 1j) / np.sqrt(2),
+        (1, 1): (-1 - 1j) / np.sqrt(2),
+        (1, 0): (1 - 1j) / np.sqrt(2)
+    }
     
-    # return symbols
+    symbols = np.array([symbol_map[tuple(pair)] for pair in bit_pairs], dtype=np.complex128)
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -151,10 +154,17 @@ def qam16_modulate(bits):
         (1, 0): -3
     }
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+    # 将比特序列重塑为每4个比特一组
+    bit_quads = bits.reshape(-1, 4)
+
+    # 映射I/Q分量并归一化
+    norm_factor = np.sqrt(10)
+    symbols = np.array([
+        (gray_map[tuple(quad[:2])] + 1j * gray_map[tuple(quad[2:])]) / norm_factor
+        for quad in bit_quads
+    ], dtype=np.complex128)
+
+    return symbols
 
 
 def test_modulation():

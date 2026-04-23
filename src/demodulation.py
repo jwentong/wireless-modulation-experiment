@@ -6,6 +6,7 @@
 import numpy as np
 
 
+
 def bpsk_demodulate(symbols):
     """
     BPSK解调
@@ -35,10 +36,10 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    # 实现BPSK解调
+    # 使用np.real()获取实部，然后判断正负
+    bits = (np.real(symbols) <= 0).astype(int)
+    return bits
 
 
 def qpsk_demodulate(symbols):
@@ -80,13 +81,26 @@ def qpsk_demodulate(symbols):
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
     
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
+    # 实现QPSK解调
+    # 对每个接收符号，计算到4个参考点的欧氏距离
+    # 找到距离最小的参考点
+    # 将参考点的索引转换为2个比特
     
-    raise NotImplementedError("请实现QPSK解调函数")
+    bits = []
+    for symbol in symbols:
+        distances = [np.abs(symbol - point) for point in constellation.values()]
+        min_index = np.argmin(distances)
+        # 索引到比特对
+        if min_index == 0:
+            bits.extend([0, 0])
+        elif min_index == 1:
+            bits.extend([0, 1])
+        elif min_index == 2:
+            bits.extend([1, 0])
+        elif min_index == 3:
+            bits.extend([1, 1])
+    
+    return np.array(bits)
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +128,39 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
+    # 实现16-QAM解调
+    # 分别判决I路和Q路
     
-    raise NotImplementedError("请实现16-QAM解调函数")
+    norm_factor = np.sqrt(10)
+    threshold1 = 2 / norm_factor  # ≈0.632
+    threshold2 = -2 / norm_factor  # ≈-0.632
+    
+    bits = []
+    for symbol in symbols:
+        real = np.real(symbol)
+        imag = np.imag(symbol)
+        
+        # 判决实部 (I路)
+        if real > threshold1:
+            bits.extend([0, 0])
+        elif real > 0:
+            bits.extend([0, 1])
+        elif real > threshold2:
+            bits.extend([1, 1])
+        else:
+            bits.extend([1, 0])
+        
+        # 判决虚部 (Q路)
+        if imag > threshold1:
+            bits.extend([0, 0])
+        elif imag > 0:
+            bits.extend([0, 1])
+        elif imag > threshold2:
+            bits.extend([1, 1])
+        else:
+            bits.extend([1, 0])
+    
+    return np.array(bits)
 
 
 def test_demodulation():
