@@ -73,7 +73,7 @@ jobs:
         cat grade_result.txt
         
     - name: 上传评分报告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: grading-report
         path: |
