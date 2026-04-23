@@ -28,8 +28,8 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     
     ber_values = []
     
-    print(f"\n测试 {modulation_scheme} 性能...")
-    print(f"比特数: {num_bits}, SNR范围: {snr_range[0]}~{snr_range[-1]} dB")
+    print(f"\nTesting {modulation_scheme} performance...")
+    print(f"Bits: {num_bits}, SNR range: {snr_range[0]}-{snr_range[-1]} dB")
     print("-" * 40)
     
     # 选择调制/解调函数
@@ -43,7 +43,7 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
         modulate_func = qam16_modulate
         demodulate_func = qam16_demodulate
     else:
-        raise ValueError(f"不支持的调制方式: {modulation_scheme}")
+        raise ValueError(f"Unsupported modulation scheme: {modulation_scheme}")
     
     # 对每个SNR值进行测试
     for snr_db in snr_range:
@@ -76,7 +76,7 @@ def compare_modulations():
     """
     
     print("=" * 50)
-    print("数字调制性能对比测试")
+    print("Digital Modulation Performance Comparison")
     print("=" * 50)
     
     snr_range = np.arange(0, 16, 2)
@@ -108,21 +108,19 @@ def compare_modulations():
         
         plt.xlabel('SNR (dB)', fontsize=12)
         plt.ylabel('Bit Error Rate (BER)', fontsize=12)
-        plt.title('数字调制方式性能对比', fontsize=14, fontweight='bold')
+        plt.title('BER Performance Comparison', fontsize=14, fontweight='bold')
         plt.legend(fontsize=11)
         plt.grid(True, which='both', alpha=0.3)
         
         os.makedirs('results', exist_ok=True)
         filepath = os.path.join('results', 'ber_comparison.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"\n✅ 性能对比图已保存到: {filepath}")
+        print(f"\nPerformance chart saved to: {filepath}")
         
         plt.close()
         
-    except NotImplementedError as e:
-        print(f"\n⏸️ 部分函数尚未实现: {e}")
     except Exception as e:
-        print(f"\n❌ 测试失败: {e}")
+        print(f"\nTest failed: {e}")
     
     print("\n" + "=" * 50)
 
@@ -135,7 +133,7 @@ def main():
     
     # 选项1: 测试单个调制方式
     # snr_range, ber_values = test_ber_performance('BPSK', num_bits=10000)
-    # plot_ber_curve(snr_range, ber_values, title="BPSK BER性能", filename="bpsk_ber.png")
+    # plot_ber_curve(snr_range, ber_values, title="BPSK BER performance", filename="bpsk_ber.png")
     
     # 选项2: 对比测试（推荐）
     compare_modulations()
