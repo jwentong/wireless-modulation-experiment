@@ -7,75 +7,86 @@ on:
     branches:
       - main
 
+# 显式声明 token 权限：发 PR 评论、上传 Artifacts
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: write
+
 jobs:
   grading:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
-      
-    - name: 设置Python环境
-      uses: actions/setup-python@v4
+      uses: actions/checkout@v4
+
+    - name: 设置 Python 环境
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
-        
+        python-version: "3.11"
+        cache: pip
+        cache-dependency-path: requirements.txt
+
     - name: 安装依赖
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     - name: 运行环境测试
       id: env_test
       continue-on-error: true
       run: |
         python src/test_environment.py
-        
+
     - name: 运行BPSK测试
       id: bpsk_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_bpsk.py -v --tb=short > bpsk_result.txt 2>&1
         cat bpsk_result.txt
-        
+
     - name: 运行QPSK测试
       id: qpsk_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_qpsk.py -v --tb=short > qpsk_result.txt 2>&1
         cat qpsk_result.txt
-        
+
     - name: 运行16-QAM测试
       id: qam_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_qam16.py -v --tb=short > qam_result.txt 2>&1
         cat qam_result.txt
-        
+
     - name: 检查实验报告
       id: report_check
       continue-on-error: true
       run: |
         python grading/check_report.py > report_result.txt 2>&1
         cat report_result.txt
-        
+
     - name: 代码质量检查
       id: pylint_check
       continue-on-error: true
       run: |
         python -m pylint src/modulation.py --score=y > pylint_result.txt 2>&1 || true
         cat pylint_result.txt
-        
+
     - name: 计算总评分
       id: calculate_grade
       run: |
+        set -e
         python grading/calculate_grade.py > grade_result.txt 2>&1
         cat grade_result.txt
-        
+
     - name: 上传评分报告
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: grading-report
+        name: grading-report-${{ github.run_id }}
         path: |
           grade_report.json
           grade_result.txt
@@ -84,23 +95,39 @@ jobs:
           qam_result.txt
           report_result.txt
           pylint_result.txt
-          
+        if-no-files-found: warn
+        retention-days: 30
+
     - name: 评论PR
-      if: github.event_name == 'pull_request'
+      if: always() && github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name == github.repository)
+      continue-on-error: true
       uses: actions/github-script@v6
       with:
         script: |
           const fs = require('fs');
-          
-          // 读取评分结果
-          let gradeText = '';
+          const readTail = (path, maxLen) => {
+            try {
+              if (!fs.existsSync(path)) {
+                return '(未找到该日志文件，可能对应步骤被跳过或尚未生成)';
+              }
+              const t = fs.readFileSync(path, 'utf8');
+              return t.length > maxLen ? t.substring(0, maxLen) + '\n... (已截断)' : t;
+            } catch (e) {
+              return String(e);
+            }
+          };
+          let gradeText = '评分系统运行失败，请检查代码。';
           try {
-            gradeText = fs.readFileSync('grade_result.txt', 'utf8');
-          } catch (error) {
-            gradeText = '评分系统运行失败，请检查代码。';
+            if (fs.existsSync('grade_result.txt')) {
+              gradeText = fs.readFileSync('grade_result.txt', 'utf8');
+            }
+          } catch (e) {
+            gradeText = '无法读取 grade_result.txt: ' + e;
           }
-          
-          // 构造评论内容
+          const bpskText = readTail('bpsk_result.txt', 2000);
+          const qpskText = readTail('qpsk_result.txt', 2000);
+          const qamText = readTail('qam_result.txt', 2000);
+          const reportText = readTail('report_result.txt', 1000);
           const comment = `## 🤖 自动评分结果
           
           ${gradeText}
@@ -112,8 +139,8 @@ jobs:
           <details>
           <summary>点击查看BPSK测试详情</summary>
           
-          \`\`\`
-          ${fs.readFileSync('bpsk_result.txt', 'utf8').substring(0, 2000)}
+          \`\`\`text
+          ${bpskText}
           \`\`\`
           
           </details>
@@ -121,8 +148,8 @@ jobs:
           <details>
           <summary>点击查看QPSK测试详情</summary>
           
-          \`\`\`
-          ${fs.readFileSync('qpsk_result.txt', 'utf8').substring(0, 2000)}
+          \`\`\`text
+          ${qpskText}
           \`\`\`
           
           </details>
@@ -130,8 +157,8 @@ jobs:
           <details>
           <summary>点击查看16-QAM测试详情</summary>
           
-          \`\`\`
-          ${fs.readFileSync('qam_result.txt', 'utf8').substring(0, 2000)}
+          \`\`\`text
+          ${qamText}
           \`\`\`
           
           </details>
@@ -139,8 +166,8 @@ jobs:
           <details>
           <summary>点击查看报告检查详情</summary>
           
-          \`\`\`
-          ${fs.readFileSync('report_result.txt', 'utf8').substring(0, 1000)}
+          \`\`\`text
+          ${reportText}
           \`\`\`
           
           </details>
@@ -152,13 +179,16 @@ jobs:
           - 修改代码后重新提交会触发自动评分
           - 完整的评分报告可在 Actions 的 Artifacts 中下载
           
-          ⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}
+          ⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
           `;
-          
-          // 发布评论
-          github.rest.issues.createComment({
+          return github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: comment
           });
+
+    - name: 评论PR (fork, 无写权限)
+      if: always() && github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository)
+      run: |
+        echo "本 PR 来自 fork：GITHUB_TOKEN 对目标仓库的 PR 无写权限时无法自动发评论。请在本仓库的 Actions 日志与 Artifacts 中查看完整评分。"

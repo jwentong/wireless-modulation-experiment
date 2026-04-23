@@ -6,7 +6,7 @@
 import numpy as np
 from modulation import bpsk_modulate, qpsk_modulate, qam16_modulate
 from demodulation import bpsk_demodulate, qpsk_demodulate, qam16_demodulate
-from utils import add_awgn, calculate_ber, plot_ber_curve, generate_random_bits
+from utils import add_awgn, calculate_ber, plot_ber_curve, generate_random_bits, setup_chinese_font
 
 
 def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=None):
@@ -24,7 +24,7 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     """
     
     if snr_range is None:
-        snr_range = np.arange(0, 16, 2)  # 0, 2, 4, ..., 14 dB
+        snr_range = np.arange(0, 16, 1)  # 0, 1, 2, ..., 15 dB
     
     ber_values = []
     
@@ -79,7 +79,7 @@ def compare_modulations():
     print("数字调制性能对比测试")
     print("=" * 50)
     
-    snr_range = np.arange(0, 16, 2)
+    snr_range = np.arange(0, 16, 1)  # 0 ~ 15 dB
     
     # TODO: 测试各种调制方式并绘制对比图
     # 提示：
@@ -100,7 +100,8 @@ def compare_modulations():
         # 绘制对比图
         import matplotlib.pyplot as plt
         import os
-        
+
+        setup_chinese_font()
         plt.figure(figsize=(10, 6))
         plt.semilogy(snr_bpsk, ber_bpsk, 'b-o', label='BPSK', linewidth=2)
         plt.semilogy(snr_qpsk, ber_qpsk, 'r-s', label='QPSK', linewidth=2)
