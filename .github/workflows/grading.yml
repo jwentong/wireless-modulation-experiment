@@ -1,22 +1,29 @@
 name: 自动评分系统
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   grading:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
       
     - name: 设置Python环境
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
@@ -75,7 +82,7 @@ jobs:
     - name: 上传评分报告
       uses: actions/upload-artifact@v4
       with:
-        name: grading-report
+        name: grading-report-${{ github.event.pull_request.user.login || github.actor }}
         path: |
           grade_report.json
           grade_result.txt
@@ -86,8 +93,8 @@ jobs:
           pylint_result.txt
           
     - name: 评论PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');
