@@ -92,8 +92,9 @@ def qpsk_modulate(bits):
     
     # 你的代码：
     bits_reshaped = bits.reshape(-1, 2)
-    I = 1 - 2 * bits_reshaped[:, 0]
-    Q = 1 - 2 * bits_reshaped[:, 1]
+    # Gray code mapping: first bit决定Q, second bit决定I
+    I = 1 - 2 * bits_reshaped[:, 1]
+    Q = 1 - 2 * bits_reshaped[:, 0]
     symbols = (I + 1j * Q) / np.sqrt(2)
     
     return symbols
