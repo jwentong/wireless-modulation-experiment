@@ -43,9 +43,9 @@ def bpsk_modulate(bits):
     # 方法3: 使用字典映射
     
     # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
+    symbols = (1 - 2 * bits).astype(complex)
     
-    # return symbols
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -91,9 +91,12 @@ def qpsk_modulate(bits):
     # 3. 别忘了归一化：除以√2使符号功率为1
     
     # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    bits_reshaped = bits.reshape(-1, 2)
+    I = 1 - 2 * bits_reshaped[:, 0]
+    Q = 1 - 2 * bits_reshaped[:, 1]
+    symbols = (I + 1j * Q) / np.sqrt(2)
     
-    # return symbols
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -152,9 +155,22 @@ def qam16_modulate(bits):
     }
     
     # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
+    bits_reshaped = bits.reshape(-1, 4)
+    I_bits = bits_reshaped[:, :2]
+    Q_bits = bits_reshaped[:, 2:]
     
-    # return symbols
+    # 映射函数
+    def map_bits(b):
+        if np.array_equal(b, [0, 0]): return 3
+        elif np.array_equal(b, [0, 1]): return 1
+        elif np.array_equal(b, [1, 1]): return -1
+        else: return -3
+    
+    I = np.array([map_bits(row) for row in I_bits])
+    Q = np.array([map_bits(row) for row in Q_bits])
+    symbols = (I + 1j * Q) / np.sqrt(10)
+    
+    return symbols
 
 
 def test_modulation():
