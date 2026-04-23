@@ -36,16 +36,16 @@ def bpsk_modulate(bits):
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
     
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
-    
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    # 实现BPSK调制：0→+1, 1→-1，返回复数类型
+    symbols = 1 - 2 * bits  # 0->1, 1->-1
+    symbols = symbols.astype(np.complex128)  # 转为复数类型
+    # 绘制并保存星座图
+    plot_constellation(
+        symbols,
+        title="BPSK星座图",
+        filename="bpsk_constellation.png"
+    )
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -83,17 +83,25 @@ def qpsk_modulate(bits):
     # 检查输入长度
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
-    
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+
+    bits = np.asarray(bits)
+    bit_pairs = bits.reshape(-1, 2)
+    # 格雷码映射
+    mapping = {
+        (0, 0): (1 + 1j),   # 00 → 45°
+        (0, 1): (-1 + 1j),  # 01 → 135°
+        (1, 1): (-1 - 1j),  # 11 → 225°
+        (1, 0): (1 - 1j)    # 10 → 315°
+    }
+    symbols = np.array([mapping[tuple(pair)] for pair in bit_pairs], dtype=np.complex128)
+    symbols /= np.sqrt(2)  # 归一化
+    # 绘制星座图
+    plot_constellation(
+        symbols,
+        title="QPSK星座图",
+        filename="qpsk_constellation.png"
+    )
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -151,10 +159,24 @@ def qam16_modulate(bits):
         (1, 0): -3
     }
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+    bits = np.asarray(bits)
+    groups = bits.reshape(-1, 4)
+    gray_map = {
+        (0, 0): 3,
+        (0, 1): 1,
+        (1, 1): -1,
+        (1, 0): -3
+    }
+    I = np.array([gray_map[tuple(g[:2])] for g in groups])
+    Q = np.array([gray_map[tuple(g[2:])] for g in groups])
+    symbols = (I + 1j * Q) / np.sqrt(10)
+    # 绘制星座图
+    plot_constellation(
+        symbols,
+        title="16-QAM星座图",
+        filename="16qam_constellation.png"
+    )
+    return symbols
 
 
 def test_modulation():
