@@ -72,6 +72,71 @@ def plot_constellation(symbols, title, filename, show_grid=True):
     plt.close()
 
 
+def plot_qam16_constellation(symbols, filename='16qam_constellation.png'):
+    """
+    绘制16-QAM星座图（4×4网格）
+    
+    参数:
+        symbols: 复数符号数组（长度16）
+        filename: 保存的文件名
+    """
+    setup_chinese_font()
+    
+    # 创建results目录（如果不存在）
+    os.makedirs('results', exist_ok=True)
+    
+    plt.figure(figsize=(10, 10))
+    
+    # 绘制星座点
+    real_parts = np.real(symbols)
+    imag_parts = np.imag(symbols)
+    
+    # 使用更大的点大小便于观察
+    plt.scatter(real_parts, imag_parts, s=300, c='blue', marker='o', 
+               alpha=0.7, edgecolors='black', linewidths=2)
+    
+    # 添加坐标轴线
+    plt.axhline(y=0, color='k', linestyle='-', linewidth=1)
+    plt.axvline(x=0, color='k', linestyle='-', linewidth=1)
+    
+    # 添加4×4网格线（在符号点的位置）
+    grid_values = [-3, -1, 1, 3]  # 16-QAM的I/Q分量值
+    normalized_grid = np.array(grid_values) / np.sqrt(10)  # 归一化
+    
+    # 绘制竖直网格线
+    for val in normalized_grid:
+        plt.axvline(x=val, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
+    
+    # 绘制水平网格线
+    for val in normalized_grid:
+        plt.axhline(y=val, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
+    
+    # 设置坐标轴范围（留一点余地）
+    margin = 0.1
+    min_val = min(normalized_grid) - margin
+    max_val = max(normalized_grid) + margin
+    plt.xlim(min_val, max_val)
+    plt.ylim(min_val, max_val)
+    
+    # 标签和标题
+    plt.xlabel('I路 (实部)', fontsize=14, fontweight='bold')
+    plt.ylabel('Q路 (虚部)', fontsize=14, fontweight='bold')
+    plt.title('16-QAM星座图 (4×4网格)', fontsize=16, fontweight='bold')
+    
+    # 设置相等的纵横比
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    # 添加网格
+    plt.grid(True, alpha=0.3, linestyle='-', linewidth=0.3)
+    
+    # 保存
+    filepath = os.path.join('results', filename)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    print(f"16-QAM星座图已保存到: {filepath}")
+    
+    plt.close()
+
+
 def add_awgn(signal, snr_db):
     """
     向信号中添加加性高斯白噪声 (AWGN)

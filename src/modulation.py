@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-from utils import plot_constellation
+from utils import plot_constellation, plot_qam16_constellation
 
 
 def bpsk_modulate(bits):
@@ -43,9 +43,9 @@ def bpsk_modulate(bits):
     # 方法3: 使用字典映射
     
     # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
+    symbols = (1 - 2 * bits).astype(np.complex128)
     
-    # return symbols
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -84,16 +84,25 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
+    # 将比特序列reshape成(-1, 2)的形状
+    bits_reshaped = bits.reshape(-1, 2)
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    # 将每对比特转换为索引（0-3）
+    # 索引 = 第一比特 * 2 + 第二比特
+    indices = bits_reshaped[:, 0] * 2 + bits_reshaped[:, 1]
     
-    # return symbols
+    # 定义格雷码映射：00→0, 01→1, 10→2, 11→3
+    gray_symbols = np.array([
+        (1 + 1j) / np.sqrt(2),    # 00: index 0
+        (-1 + 1j) / np.sqrt(2),   # 01: index 1
+        (1 - 1j) / np.sqrt(2),    # 10: index 2
+        (-1 - 1j) / np.sqrt(2)    # 11: index 3
+    ])
+    
+    # 根据索引映射到对应的符号
+    symbols = gray_symbols[indices]
+    
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -151,10 +160,31 @@ def qam16_modulate(bits):
         (1, 0): -3
     }
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
+    # 将比特序列reshape成(N/4, 4)的形状
+    bits_reshaped = bits.reshape(-1, 4)
     
-    # return symbols
+    # 提取I路和Q路的比特对
+    # bits_reshaped[:, 0:2] 是I路的2个比特
+    # bits_reshaped[:, 2:4] 是Q路的2个比特
+    i_bits = bits_reshaped[:, 0:2]
+    q_bits = bits_reshaped[:, 2:4]
+    
+    # 将2比特对转换为索引(0-3)，然后映射到幅度值
+    # 索引 = 第一比特 * 2 + 第二比特
+    i_indices = i_bits[:, 0] * 2 + i_bits[:, 1]
+    q_indices = q_bits[:, 0] * 2 + q_bits[:, 1]
+    
+    # 格雷码映射数组：索引0->3, 1->1, 2->-3, 3->-1
+    gray_values = np.array([3, 1, -3, -1])
+    
+    # 映射I和Q分量
+    i_values = gray_values[i_indices]
+    q_values = gray_values[q_indices]
+    
+    # 生成复数符号并归一化
+    symbols = (i_values + 1j * q_values) / np.sqrt(10)
+    
+    return symbols
 
 
 def test_modulation():
@@ -212,10 +242,15 @@ def test_modulation():
         print(f"   输出符号数: {len(symbols_qam)}")
         print(f"   唯一符号数量: {len(np.unique(symbols_qam))}")
         
-        # 绘制星座图
-        plot_constellation(symbols_qam[:250], 
-                          "16-QAM星座图", 
-                          "16qam_constellation.png")
+        # 绘制星座图（4×4网格）
+        # 提取16个不同的16-QAM符号
+        unique_symbols = np.unique(symbols_qam)
+        if len(unique_symbols) >= 16:
+            # 生成标准的16-QAM星座（4×4网格）
+            i_values = np.array([-3, -1, 1, 3]) / np.sqrt(10)
+            q_values = np.array([-3, -1, 1, 3]) / np.sqrt(10)
+            qam16_symbols = np.array([i + 1j*q for i in i_values for q in q_values])
+            plot_qam16_constellation(qam16_symbols, "16qam_constellation.png")
         print("   ✅ 16-QAM测试通过")
     except NotImplementedError:
         print("   ⏸️ 16-QAM尚未实现")
