@@ -43,8 +43,10 @@ def bpsk_modulate(bits):
     # 方法3: 使用字典映射
     
     # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
     
+    bits = np.array(bits)
+    symbols = 1 - 2 * bits
+    return symbols
     # return symbols
 
 
@@ -84,16 +86,25 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+    # 每2比特一组
+    bit_pairs = bits.reshape(-1, 2)
+    symbols = []
+
+    # 格雷码映射
+    for b0, b1 in bit_pairs:
+        if b0 == 0 and b1 == 0:
+            symbol = (1 + 1j) / np.sqrt(2)
+        elif b0 == 0 and b1 == 1:
+            symbol = (-1 + 1j) / np.sqrt(2)
+        elif b0 == 1 and b1 == 1:
+            symbol = (-1 - 1j) / np.sqrt(2)
+        elif b0 == 1 and b1 == 0:
+            symbol = (1 - 1j) / np.sqrt(2)
+
+        symbols.append(symbol)
+
+    symbols = np.array(symbols, dtype=complex)
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -134,27 +145,26 @@ def qam16_modulate(bits):
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
     
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/4, 4)的形状
-    # 2. 对每组4个比特：
-    #    - 前2位映射到I分量（实部）
-    #    - 后2位映射到Q分量（虚部）
-    # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
-    # 4. 归一化：除以√10使平均功率为1
-    
-    # 格雷码映射字典（可选使用）
+    # 格雷码映射字典
     gray_map = {
         (0, 0): 3,
         (0, 1): 1,
         (1, 1): -1,
         (1, 0): -3
     }
-    
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+
+    # 每4比特一组
+    bit_groups = bits.reshape(-1, 4)
+    symbols = []
+
+    for b0, b1, b2, b3 in bit_groups:
+        i_val = gray_map[(b0, b1)]   # 前2位决定I路
+        q_val = gray_map[(b2, b3)]   # 后2位决定Q路
+        symbol = (i_val + 1j * q_val) / np.sqrt(10)  # 功率归一化
+        symbols.append(symbol)
+
+    symbols = np.array(symbols, dtype=complex)
+    return symbols
 
 
 def test_modulation():
