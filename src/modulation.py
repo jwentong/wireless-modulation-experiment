@@ -42,10 +42,9 @@ def bpsk_modulate(bits):
     # 方法2: 使用数学运算 1 - 2*bits
     # 方法3: 使用字典映射
     
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
+    symbols = (1 - 2 * bits).astype(complex)
     
-    # return symbols
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -90,10 +89,17 @@ def qpsk_modulate(bits):
     # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
     # 3. 别忘了归一化：除以√2使符号功率为1
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    bit_pairs = bits.reshape(-1, 2)
+    gray_map = {
+        (0, 0): (1 + 1j),
+        (0, 1): (-1 + 1j),
+        (1, 1): (-1 - 1j),
+        (1, 0): (1 - 1j),
+    }
+    symbols = np.array([gray_map[tuple(pair)] for pair in bit_pairs], dtype=complex)
+    symbols = symbols / np.sqrt(2)
     
-    # return symbols
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -151,10 +157,12 @@ def qam16_modulate(bits):
         (1, 0): -3
     }
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
+    bit_groups = bits.reshape(-1, 4)
+    i_values = np.array([gray_map[tuple(group[:2])] for group in bit_groups])
+    q_values = np.array([gray_map[tuple(group[2:])] for group in bit_groups])
+    symbols = (i_values + 1j * q_values).astype(complex) / np.sqrt(10)
     
-    # return symbols
+    return symbols
 
 
 def test_modulation():
@@ -178,11 +186,11 @@ def test_modulation():
         plot_constellation(symbols_bpsk[:100], 
                           "BPSK星座图", 
                           "bpsk_constellation.png")
-        print("   ✅ BPSK测试通过")
+        print("   [OK] BPSK测试通过")
     except NotImplementedError:
-        print("   ⏸️ BPSK尚未实现")
+        print("   [TODO] BPSK尚未实现")
     except Exception as e:
-        print(f"   ❌ BPSK测试失败: {e}")
+        print(f"   [ERROR] BPSK测试失败: {e}")
     
     # 测试QPSK
     print("\n2. 测试QPSK调制...")
@@ -197,11 +205,11 @@ def test_modulation():
         plot_constellation(symbols_qpsk[:200], 
                           "QPSK星座图", 
                           "qpsk_constellation.png")
-        print("   ✅ QPSK测试通过")
+        print("   [OK] QPSK测试通过")
     except NotImplementedError:
-        print("   ⏸️ QPSK尚未实现")
+        print("   [TODO] QPSK尚未实现")
     except Exception as e:
-        print(f"   ❌ QPSK测试失败: {e}")
+        print(f"   [ERROR] QPSK测试失败: {e}")
     
     # 测试16-QAM
     print("\n3. 测试16-QAM调制...")
@@ -216,11 +224,11 @@ def test_modulation():
         plot_constellation(symbols_qam[:250], 
                           "16-QAM星座图", 
                           "16qam_constellation.png")
-        print("   ✅ 16-QAM测试通过")
+        print("   [OK] 16-QAM测试通过")
     except NotImplementedError:
-        print("   ⏸️ 16-QAM尚未实现")
+        print("   [TODO] 16-QAM尚未实现")
     except Exception as e:
-        print(f"   ❌ 16-QAM测试失败: {e}")
+        print(f"   [ERROR] 16-QAM测试失败: {e}")
     
     print("\n" + "=" * 50)
     print("测试完成！请检查results/目录中的星座图。")

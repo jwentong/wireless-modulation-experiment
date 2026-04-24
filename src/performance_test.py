@@ -6,7 +6,7 @@
 import numpy as np
 from modulation import bpsk_modulate, qpsk_modulate, qam16_modulate
 from demodulation import bpsk_demodulate, qpsk_demodulate, qam16_demodulate
-from utils import add_awgn, calculate_ber, plot_ber_curve, generate_random_bits
+from utils import add_awgn, calculate_ber, plot_ber_curve, generate_random_bits, setup_chinese_font
 
 
 def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=None):
@@ -45,6 +45,19 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     else:
         raise ValueError(f"不支持的调制方式: {modulation_scheme}")
     
+    if modulation_scheme == 'BPSK':
+        valid_num_bits = num_bits
+    elif modulation_scheme == 'QPSK':
+        valid_num_bits = (num_bits // 2) * 2
+    else:
+        valid_num_bits = (num_bits // 4) * 4
+    
+    if valid_num_bits == 0:
+        raise ValueError("num_bits过小，无法满足当前调制方式的分组要求")
+    
+    if valid_num_bits != num_bits:
+        print(f"输入比特数 {num_bits} 已调整为 {valid_num_bits}，以满足 {modulation_scheme} 分组要求")
+    
     # 对每个SNR值进行测试
     for snr_db in snr_range:
         # TODO: 完成性能测试的主循环
@@ -57,7 +70,7 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
         # 6. 将BER添加到ber_values列表
         
         # 你的代码：
-        bits_tx = generate_random_bits(num_bits)
+        bits_tx = generate_random_bits(valid_num_bits)
         symbols = modulate_func(bits_tx)
         symbols_rx = add_awgn(symbols, snr_db)
         bits_rx = demodulate_func(symbols_rx)
@@ -81,12 +94,6 @@ def compare_modulations():
     
     snr_range = np.arange(0, 16, 2)
     
-    # TODO: 测试各种调制方式并绘制对比图
-    # 提示：
-    # 1. 分别测试BPSK、QPSK、16-QAM
-    # 2. 收集所有的BER数据
-    # 3. 在一张图上绘制多条曲线
-    
     try:
         # 测试BPSK
         snr_bpsk, ber_bpsk = test_ber_performance('BPSK', num_bits=10000, snr_range=snr_range)
@@ -101,6 +108,7 @@ def compare_modulations():
         import matplotlib.pyplot as plt
         import os
         
+        setup_chinese_font()
         plt.figure(figsize=(10, 6))
         plt.semilogy(snr_bpsk, ber_bpsk, 'b-o', label='BPSK', linewidth=2)
         plt.semilogy(snr_qpsk, ber_qpsk, 'r-s', label='QPSK', linewidth=2)
@@ -115,14 +123,18 @@ def compare_modulations():
         os.makedirs('results', exist_ok=True)
         filepath = os.path.join('results', 'ber_comparison.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"\n✅ 性能对比图已保存到: {filepath}")
+        print(f"\n[OK] 性能对比图已保存到: {filepath}")
         
         plt.close()
         
+        plot_ber_curve(snr_bpsk, ber_bpsk, title="BPSK BER性能", filename="bpsk_ber.png")
+        plot_ber_curve(snr_qpsk, ber_qpsk, title="QPSK BER性能", filename="qpsk_ber.png")
+        plot_ber_curve(snr_qam, ber_qam, title="16-QAM BER性能", filename="16qam_ber.png")
+        
     except NotImplementedError as e:
-        print(f"\n⏸️ 部分函数尚未实现: {e}")
+        print(f"\n[TODO] 部分函数尚未实现: {e}")
     except Exception as e:
-        print(f"\n❌ 测试失败: {e}")
+        print(f"\n[ERROR] 测试失败: {e}")
     
     print("\n" + "=" * 50)
 

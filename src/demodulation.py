@@ -37,8 +37,10 @@ def bpsk_demodulate(symbols):
     
     # TODO: 实现BPSK解调
     # 提示：使用np.real()获取实部，然后判断正负
+    real_parts = np.real(symbols)
+    bits = np.where(real_parts > 0, 0, 1)
     
-    raise NotImplementedError("请实现BPSK解调函数")
+    return bits.astype(int)
 
 
 def qpsk_demodulate(symbols):
@@ -85,8 +87,22 @@ def qpsk_demodulate(symbols):
     # 1. 对每个接收符号，计算到4个参考点的欧氏距离
     # 2. 找到距离最小的参考点
     # 3. 将参考点的索引转换为2个比特
+    symbol_map = {
+        0: (0, 0),
+        1: (0, 1),
+        2: (1, 0),
+        3: (1, 1),
+    }
+    ref_indices = np.array(list(constellation.keys()))
+    ref_points = np.array(list(constellation.values()))
+    bits = []
     
-    raise NotImplementedError("请实现QPSK解调函数")
+    for symbol in symbols:
+        distances = np.abs(symbol - ref_points)
+        nearest_index = ref_indices[np.argmin(distances)]
+        bits.extend(symbol_map[nearest_index])
+    
+    return np.array(bits, dtype=int)
 
 
 def qam16_demodulate(symbols):
@@ -118,8 +134,26 @@ def qam16_demodulate(symbols):
     # 提示：可以采用两种方法
     # 方法1：遍历16个参考点，找最小距离（简单但慢）
     # 方法2：分别判决I路和Q路（快速且实用）
+    threshold = 2 / np.sqrt(10)
     
-    raise NotImplementedError("请实现16-QAM解调函数")
+    def decide_component(values):
+        component_bits = []
+        for value in values:
+            if value > threshold:
+                component_bits.extend([0, 0])
+            elif value > 0:
+                component_bits.extend([0, 1])
+            elif value > -threshold:
+                component_bits.extend([1, 1])
+            else:
+                component_bits.extend([1, 0])
+        return np.array(component_bits, dtype=int).reshape(-1, 2)
+    
+    i_bits = decide_component(np.real(symbols))
+    q_bits = decide_component(np.imag(symbols))
+    bits = np.hstack((i_bits, q_bits)).reshape(-1)
+    
+    return bits
 
 
 def test_demodulation():
@@ -143,11 +177,11 @@ def test_demodulation():
         bits_rx = bpsk_demodulate(symbols_rx)
         ber = calculate_ber(bits_tx, bits_rx)
         print(f"   BER = {ber:.4f} (SNR=10dB)")
-        print("   ✅ BPSK解调测试通过")
+        print("   [OK] BPSK解调测试通过")
     except NotImplementedError:
-        print("   ⏸️ BPSK解调尚未实现")
+        print("   [TODO] BPSK解调尚未实现")
     except Exception as e:
-        print(f"   ❌ BPSK解调测试失败: {e}")
+        print(f"   [ERROR] BPSK解调测试失败: {e}")
     
     # 测试QPSK
     print("\n2. 测试QPSK解调...")
@@ -158,11 +192,11 @@ def test_demodulation():
         bits_rx = qpsk_demodulate(symbols_rx)
         ber = calculate_ber(bits_tx, bits_rx)
         print(f"   BER = {ber:.4f} (SNR=10dB)")
-        print("   ✅ QPSK解调测试通过")
+        print("   [OK] QPSK解调测试通过")
     except NotImplementedError:
-        print("   ⏸️ QPSK解调尚未实现")
+        print("   [TODO] QPSK解调尚未实现")
     except Exception as e:
-        print(f"   ❌ QPSK解调测试失败: {e}")
+        print(f"   [ERROR] QPSK解调测试失败: {e}")
     
     # 测试16-QAM
     print("\n3. 测试16-QAM解调...")
@@ -173,11 +207,11 @@ def test_demodulation():
         bits_rx = qam16_demodulate(symbols_rx)
         ber = calculate_ber(bits_tx, bits_rx)
         print(f"   BER = {ber:.4f} (SNR=15dB)")
-        print("   ✅ 16-QAM解调测试通过")
+        print("   [OK] 16-QAM解调测试通过")
     except NotImplementedError:
-        print("   ⏸️ 16-QAM解调尚未实现")
+        print("   [TODO] 16-QAM解调尚未实现")
     except Exception as e:
-        print(f"   ❌ 16-QAM解调测试失败: {e}")
+        print(f"   [ERROR] 16-QAM解调测试失败: {e}")
     
     print("\n" + "=" * 50)
 
