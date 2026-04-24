@@ -147,7 +147,7 @@ class TestQAM16:
 
 def test_constellation_file_exists():
     """测试是否生成了星座图文件"""
-    constellation_file = os.path.join('results', '16qam_constellation.png')
+    constellation_file = os.path.join('src', 'results', '16qam_constellation.png')
     
     if not os.path.exists(constellation_file):
         pytest.skip("16-QAM星座图文件不存在，请运行modulation.py生成")

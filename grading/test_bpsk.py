@@ -76,7 +76,7 @@ class TestBPSK:
 
 def test_constellation_file_exists():
     """测试是否生成了星座图文件"""
-    constellation_file = os.path.join('results', 'bpsk_constellation.png')
+    constellation_file = os.path.join('src', 'results', 'bpsk_constellation.png')
     
     # 如果文件不存在，尝试运行modulation.py生成
     if not os.path.exists(constellation_file):

@@ -108,7 +108,7 @@ class TestQPSK:
 
 def test_constellation_file_exists():
     """测试是否生成了星座图文件"""
-    constellation_file = os.path.join('results', 'qpsk_constellation.png')
+    constellation_file = os.path.join('src', 'results', 'qpsk_constellation.png')
     
     if not os.path.exists(constellation_file):
         pytest.skip("QPSK星座图文件不存在，请运行modulation.py生成")

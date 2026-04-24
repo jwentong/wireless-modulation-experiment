@@ -35,17 +35,10 @@ def bpsk_modulate(bits):
         >>> print(symbols)
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
-    
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
-    
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+
+    symbols = (1 - 2 * bits).astype(complex)
+
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -79,21 +72,30 @@ def qpsk_modulate(bits):
         >>> print(symbols)
         [ 0.707+0.707j -0.707+0.707j -0.707-0.707j  0.707-0.707j]
     """
+    # 确保输入是 numpy 数组，方便矩阵运算
+    bits = np.asarray(bits)
     
     # 检查输入长度
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
-    
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+
+    # 1. 将比特序列从一维 [b0, b1, b2, b3...] 转换为二维 [[b0, b1], [b2, b3]...]
+    # 每行代表一个符号的两个比特：[bit_I_ref, bit_Q_ref]
+    # 映射逻辑如下：
+    # 00 -> (1+1j), 01 -> (-1+1j), 11 -> (-1-1j), 10 -> (1-1j)
+    pairs = bits.reshape(-1, 2)
+
+    # 2. 根据映射逻辑计算实部和虚部
+    # 规律推导：
+    # 第一位(bits[:, 0])控制虚部: 0 -> +1, 1 -> -1  =>  Imag = 1 - 2*bit0
+    # 第二位(bits[:, 1])控制实部: 0 -> +1, 1 -> -1  =>  Real = 1 - 2*bit1
+    real_part = 1 - 2 * pairs[:, 1]
+    imag_part = 1 - 2 * pairs[:, 0]
+
+    # 3. 组合成复数符号并进行功率归一化
+    symbols = (real_part + 1j * imag_part) / np.sqrt(2)
+
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -129,33 +131,42 @@ def qam16_modulate(bits):
         >>> symbols = qam16_modulate(bits)
         # 应该得到两个符号在正确位置
     """
+
+    # 确保输入是 numpy 数组，方便操作
+    bits = np.asanyarray(bits)
     
     # 检查输入长度
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
-    
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/4, 4)的形状
-    # 2. 对每组4个比特：
-    #    - 前2位映射到I分量（实部）
-    #    - 后2位映射到Q分量（虚部）
-    # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
-    # 4. 归一化：除以√10使平均功率为1
-    
-    # 格雷码映射字典（可选使用）
+
+    # 1. 将比特序列重塑 (N/4, 4)
+    # 每一行代表一个 QAM 符号的 4 个比特 [b0, b1, b2, b3]
+    reshaped_bits = bits.reshape(-1, 4)
+
+    # 定义格雷码映射表
+    # 映射关系：00→3, 01→1, 11→-1, 10→-3
     gray_map = {
         (0, 0): 3,
         (0, 1): 1,
         (1, 1): -1,
         (1, 0): -3
     }
-    
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
 
+    # 3. 映射比特到 I/Q 分量
+    # 前两位控制 I (实部)，后两位控制 Q (虚部)
+    i_parts = np.array([gray_map[tuple(b)] for b in reshaped_bits[:, :2]])
+    q_parts = np.array([gray_map[tuple(b)] for b in reshaped_bits[:, 2:]])
+
+    # 组合成复数符号
+    symbols = i_parts + 1j * q_parts
+
+    # 4. 功率归一化
+    # 16-QAM 平均功率为 10 (对于分量 {±1, ±3})
+    # 归一化因子为 1/sqrt(10)
+    normalization_factor = np.sqrt(10)
+    symbols = symbols / normalization_factor
+
+    return symbols
 
 def test_modulation():
     """

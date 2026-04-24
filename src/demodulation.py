@@ -34,11 +34,14 @@ def bpsk_demodulate(symbols):
         >>> print(bits)
         [0 1 0]
     """
-    
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+
+    # 获取复数符号的实部
+    real_parts = np.real(symbols)
+
+    # 判决：实部 > 0 → 比特0，实部 ≤ 0 → 比特1
+    bits = (real_parts <= 0).astype(int)
+
+    return bits
 
 
 def qpsk_demodulate(symbols):
@@ -79,14 +82,35 @@ def qpsk_demodulate(symbols):
         3: (-1 - 1j) / np.sqrt(2),   # 11
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+
+    # 定义QPSK参考星座点（格雷码）
+    constellation = {
+        0: (1 + 1j) / np.sqrt(2),  # 00
+        1: (-1 + 1j) / np.sqrt(2),  # 01
+        3: (-1 - 1j) / np.sqrt(2),  # 11
+        2: (1 - 1j) / np.sqrt(2)  # 10
+    }
+
+    bits = []
+
+    # 遍历每个接收符号
+    for symbol in symbols:
+        min_distance = float('inf')
+        best_index = 0
+
+        # 步骤1&2: 计算到4个参考点的欧氏距离，找最小距离的点
+        for index, constellation_point in constellation.items():
+            distance = abs(symbol - constellation_point)  # 欧氏距离
+            if distance < min_distance:
+                min_distance = distance
+                best_index = index
+
+        # 步骤3: 将参考点索引转换为2个比特
+        # 索引0->00, 1->01, 2->10, 3->11
+        bits.append((best_index >> 1) & 1)  # 高位比特
+        bits.append(best_index & 1)  # 低位比特
+
+    return bits
 
 
 def qam16_demodulate(symbols):
@@ -113,13 +137,42 @@ def qam16_demodulate(symbols):
         -2/√10 ~ 0 → 11
         < -2/√10 → 10
     """
-    
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+
+    # 判决门限
+    threshold = 2 / np.sqrt(10)
+
+    # 初始化输出比特序列
+    bits = []
+
+    for symbol in symbols:
+        # 分离 I 路和 Q 路
+        I = symbol.real
+        Q = symbol.imag
+
+        # ========== I 路判决 (2比特) ==========
+        if I > threshold:
+            bits_i = [0, 0]  # > 2/√10 → 00
+        elif I >= 0:
+            bits_i = [0, 1]  # 0 ~ 2/√10 → 01
+        elif I >= -threshold:
+            bits_i = [1, 1]  # -2/√10 ~ 0 → 11
+        else:
+            bits_i = [1, 0]  # < -2/√10 → 10
+
+        # ========== Q 路判决 (2比特) ==========
+        if Q > threshold:
+            bits_q = [0, 0]  # > 2/√10 → 00
+        elif Q >= 0:
+            bits_q = [0, 1]  # 0 ~ 2/√10 → 01
+        elif Q >= -threshold:
+            bits_q = [1, 1]  # -2/√10 ~ 0 → 11
+        else:
+            bits_q = [1, 0]  # < -2/√10 → 10
+
+        # 合并 I 路和 Q 路比特
+        bits.extend(bits_i + bits_q)
+
+    return np.array(bits)
 
 
 def test_demodulation():
