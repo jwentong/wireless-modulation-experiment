@@ -28,6 +28,8 @@ results/
 *.png
 *.jpg
 *.pdf
+!results/
+!results/*.png
 
 # IDE
 .vscode/

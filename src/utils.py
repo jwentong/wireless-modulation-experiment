@@ -1,175 +1,171 @@
 """
-工具函数模块
-提供绘图、信号处理等辅助功能
+Utility helpers for plotting and simple communication experiments.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
 import os
+
+import numpy as np
+from PIL import Image, ImageDraw
 
 
 def setup_chinese_font():
     """
-    设置matplotlib支持中文显示
+    Configure Matplotlib fonts so Chinese labels render when available.
     """
     try:
-        # Windows系统使用微软雅黑
-        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Arial Unicode MS']
-        plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+        import matplotlib.pyplot as plt
+
+        plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "Arial Unicode MS"]
+        plt.rcParams["axes.unicode_minus"] = False
     except Exception:
-        print("警告: 无法设置中文字体，图表标签可能显示为方框")
+        print("Warning: unable to configure Chinese fonts for Matplotlib.")
 
 
 def plot_constellation(symbols, title, filename, show_grid=True):
     """
-    绘制星座图
-    
-    参数:
-        symbols: 复数符号数组
-        title: 图表标题
-        filename: 保存的文件名（相对于results/目录）
-        show_grid: 是否显示网格
+    Plot a constellation diagram and save it into the results directory.
     """
-    setup_chinese_font()
-    
-    # 创建results目录（如果不存在）
-    os.makedirs('results', exist_ok=True)
-    
-    plt.figure(figsize=(8, 8))
-    
-    # 绘制星座点
+    os.makedirs("results", exist_ok=True)
+
+    symbols = np.asarray(symbols)
     real_parts = np.real(symbols)
     imag_parts = np.imag(symbols)
-    plt.scatter(real_parts, imag_parts, s=100, c='blue', marker='o', alpha=0.6, edgecolors='black')
-    
-    # 设置坐标轴
-    max_val = max(np.max(np.abs(real_parts)), np.max(np.abs(imag_parts))) * 1.2
-    plt.xlim(-max_val, max_val)
-    plt.ylim(-max_val, max_val)
-    
-    # 添加坐标轴线
-    plt.axhline(y=0, color='k', linestyle='-', linewidth=0.5)
-    plt.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
-    
-    # 网格
+    filepath = os.path.join("results", filename)
+
+    _plot_constellation_with_pillow(real_parts, imag_parts, title, filepath, show_grid)
+    print(f"Saved constellation plot to: {filepath}")
+
+
+def _plot_constellation_with_pillow(real_parts, imag_parts, title, filepath, show_grid):
+    """
+    Lightweight fallback renderer used when Matplotlib cannot be imported.
+    """
+    width = 900
+    height = 900
+    margin = 90
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+
+    max_component = max(np.max(np.abs(real_parts)), np.max(np.abs(imag_parts)), 1.0)
+    limit = max_component * 1.2
+    plot_size = min(width, height) - 2 * margin
+
+    def map_x(value):
+        return margin + (value + limit) / (2 * limit) * plot_size
+
+    def map_y(value):
+        return height - (margin + (value + limit) / (2 * limit) * plot_size)
+
     if show_grid:
-        plt.grid(True, alpha=0.3)
-    
-    # 标签
-    plt.xlabel('实部 (In-phase)', fontsize=12)
-    plt.ylabel('虚部 (Quadrature)', fontsize=12)
-    plt.title(title, fontsize=14, fontweight='bold')
-    
-    # 设置相等的纵横比
-    plt.gca().set_aspect('equal', adjustable='box')
-    
-    # 保存
-    filepath = os.path.join('results', filename)
-    plt.savefig(filepath, dpi=300, bbox_inches='tight')
-    print(f"星座图已保存到: {filepath}")
-    
-    plt.close()
+        for fraction in np.linspace(-1, 1, 5):
+            x = map_x(fraction * limit)
+            y = map_y(fraction * limit)
+            draw.line((x, margin, x, height - margin), fill=(220, 220, 220), width=1)
+            draw.line((margin, y, width - margin, y), fill=(220, 220, 220), width=1)
+
+    draw.rectangle((margin, margin, width - margin, height - margin), outline="black", width=2)
+    draw.line((map_x(0), margin, map_x(0), height - margin), fill="black", width=2)
+    draw.line((margin, map_y(0), width - margin, map_y(0)), fill="black", width=2)
+
+    for real_value, imag_value in zip(real_parts, imag_parts):
+        x = map_x(real_value)
+        y = map_y(imag_value)
+        radius = 8
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=(0, 102, 204), outline="black")
+
+    draw.text((margin, 20), title, fill="black")
+    draw.text((width // 2 - 35, height - 40), "In-phase", fill="black")
+    draw.text((20, height // 2 - 10), "Quadrature", fill="black")
+    image.save(filepath)
 
 
 def add_awgn(signal, snr_db):
     """
-    向信号中添加加性高斯白噪声 (AWGN)
-    
-    参数:
-        signal: 输入信号（复数数组）
-        snr_db: 信噪比（dB）
-    
-    返回:
-        加噪后的信号
+    Add complex AWGN to a signal for a given SNR in dB.
     """
-    # 计算信号功率
+    signal = np.asarray(signal)
     signal_power = np.mean(np.abs(signal) ** 2)
-    
-    # 计算噪声功率
     snr_linear = 10 ** (snr_db / 10)
     noise_power = signal_power / snr_linear
-    
-    # 生成复高斯噪声
+
     noise_real = np.random.normal(0, np.sqrt(noise_power / 2), signal.shape)
     noise_imag = np.random.normal(0, np.sqrt(noise_power / 2), signal.shape)
     noise = noise_real + 1j * noise_imag
-    
     return signal + noise
 
 
 def calculate_ber(bits_tx, bits_rx):
     """
-    计算误比特率 (BER)
-    
-    参数:
-        bits_tx: 发送的比特序列
-        bits_rx: 接收的比特序列
-    
-    返回:
-        BER值（0到1之间）
+    Calculate bit error rate.
     """
+    bits_tx = np.asarray(bits_tx)
+    bits_rx = np.asarray(bits_rx)
     if len(bits_tx) != len(bits_rx):
-        raise ValueError("发送和接收的比特序列长度不一致")
-    
+        raise ValueError("Transmitted and received bit sequences must have the same length.")
+
     errors = np.sum(bits_tx != bits_rx)
-    ber = errors / len(bits_tx)
-    return ber
+    return errors / len(bits_tx)
 
 
 def plot_ber_curve(snr_range, ber_values, title="BER vs SNR", filename="ber_curve.png"):
     """
-    绘制BER性能曲线
-    
-    参数:
-        snr_range: SNR值数组（dB）
-        ber_values: 对应的BER值数组
-        title: 图表标题
-        filename: 保存的文件名
+    Plot and save a BER curve.
     """
-    setup_chinese_font()
-    
-    # 创建results目录
-    os.makedirs('results', exist_ok=True)
-    
-    plt.figure(figsize=(10, 6))
-    plt.semilogy(snr_range, ber_values, 'b-o', linewidth=2, markersize=8)
-    
-    plt.xlabel('SNR (dB)', fontsize=12)
-    plt.ylabel('Bit Error Rate (BER)', fontsize=12)
-    plt.title(title, fontsize=14, fontweight='bold')
-    plt.grid(True, which='both', alpha=0.3)
-    
-    # 保存
-    filepath = os.path.join('results', filename)
-    plt.savefig(filepath, dpi=300, bbox_inches='tight')
-    print(f"BER曲线已保存到: {filepath}")
-    
-    plt.close()
+    os.makedirs("results", exist_ok=True)
+
+    filepath = os.path.join("results", filename)
+
+    width = 1000
+    height = 600
+    margin = 80
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((margin, margin, width - margin, height - margin), outline="black", width=2)
+    draw.text((margin, 20), title, fill="black")
+
+    snr_range = np.asarray(snr_range, dtype=float)
+    ber_values = np.asarray(ber_values, dtype=float)
+    ber_values = np.maximum(ber_values, 1e-6)
+
+    x_min = float(np.min(snr_range))
+    x_max = float(np.max(snr_range))
+    y_min = -6.0
+    y_max = 0.0
+
+    def map_x(value):
+        if x_max == x_min:
+            return width / 2
+        return margin + (value - x_min) / (x_max - x_min) * (width - 2 * margin)
+
+    def map_y(value):
+        log_value = np.log10(value)
+        return height - margin - (log_value - y_min) / (y_max - y_min) * (height - 2 * margin)
+
+    points = [(map_x(x), map_y(y)) for x, y in zip(snr_range, ber_values)]
+    for point in points:
+        x, y = point
+        draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=(0, 102, 204), outline="black")
+    for start, end in zip(points[:-1], points[1:]):
+        draw.line((start[0], start[1], end[0], end[1]), fill=(0, 102, 204), width=3)
+
+    draw.text((width // 2 - 30, height - 40), "SNR (dB)", fill="black")
+    draw.text((20, height // 2 - 10), "log10(BER)", fill="black")
+    image.save(filepath)
+
+    print(f"Saved BER curve to: {filepath}")
 
 
 def generate_random_bits(n):
     """
-    生成随机比特序列
-    
-    参数:
-        n: 比特数量
-    
-    返回:
-        长度为n的随机比特数组（0或1）
+    Generate a random binary sequence of length n.
     """
     return np.random.randint(0, 2, n)
 
 
 if __name__ == "__main__":
-    print("工具函数模块测试...")
-    
-    # 测试随机比特生成
+    print("Utility module self-test...")
     bits = generate_random_bits(100)
-    print(f"生成了 {len(bits)} 个随机比特")
-    
-    # 测试星座图绘制
-    test_symbols = np.array([1+1j, -1+1j, -1-1j, 1-1j]) / np.sqrt(2)
-    plot_constellation(test_symbols, "测试星座图", "test_constellation.png")
-    
-    print("工具函数测试完成！")
+    print(f"Generated {len(bits)} random bits")
+    test_symbols = np.array([1 + 1j, -1 + 1j, -1 - 1j, 1 - 1j]) / np.sqrt(2)
+    plot_constellation(test_symbols, "Test Constellation", "test_constellation.png")
+    print("Utility module self-test completed")
