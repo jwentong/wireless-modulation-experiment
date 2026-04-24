@@ -113,16 +113,16 @@ def compare_modulations():
         plt.grid(True, which='both', alpha=0.3)
         
         os.makedirs('results', exist_ok=True)
-        filepath = os.path.join('results', 'ber_comparison.png')
+        filepath = os.path.join('results', 'ber_performance.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"\n✅ 性能对比图已保存到: {filepath}")
+        print(f"\nBER performance plot saved to: {filepath}")
         
         plt.close()
         
     except NotImplementedError as e:
         print(f"\n⏸️ 部分函数尚未实现: {e}")
     except Exception as e:
-        print(f"\n❌ 测试失败: {e}")
+        print(f"\nTest failed: {e}")
     
     print("\n" + "=" * 50)
 
