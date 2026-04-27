@@ -1,81 +1,89 @@
-name: 自动评分系统
+﻿name: 自动评分系统
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   grading:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
-      
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
     - name: 设置Python环境
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        
+
     - name: 安装依赖
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     - name: 运行环境测试
       id: env_test
       continue-on-error: true
       run: |
         python src/test_environment.py
-        
+
     - name: 运行BPSK测试
       id: bpsk_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_bpsk.py -v --tb=short > bpsk_result.txt 2>&1
         cat bpsk_result.txt
-        
+
     - name: 运行QPSK测试
       id: qpsk_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_qpsk.py -v --tb=short > qpsk_result.txt 2>&1
         cat qpsk_result.txt
-        
+
     - name: 运行16-QAM测试
       id: qam_test
       continue-on-error: true
       run: |
         python -m pytest grading/test_qam16.py -v --tb=short > qam_result.txt 2>&1
         cat qam_result.txt
-        
+
     - name: 检查实验报告
       id: report_check
       continue-on-error: true
       run: |
         python grading/check_report.py > report_result.txt 2>&1
         cat report_result.txt
-        
+
     - name: 代码质量检查
       id: pylint_check
       continue-on-error: true
       run: |
         python -m pylint src/modulation.py --score=y > pylint_result.txt 2>&1 || true
         cat pylint_result.txt
-        
+
     - name: 计算总评分
       id: calculate_grade
       run: |
         python grading/calculate_grade.py > grade_result.txt 2>&1
         cat grade_result.txt
-        
+
     - name: 上传评分报告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: grading-report
+        name: grading-report-${{ github.event.pull_request.user.login || github.actor }}
         path: |
           grade_report.json
           grade_result.txt
@@ -84,78 +92,80 @@ jobs:
           qam_result.txt
           report_result.txt
           pylint_result.txt
-          
+
     - name: 评论PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');
-          
-          // 读取评分结果
+
           let gradeText = '';
           try {
             gradeText = fs.readFileSync('grade_result.txt', 'utf8');
           } catch (error) {
             gradeText = '评分系统运行失败，请检查代码。';
           }
-          
-          // 构造评论内容
+
+          const student = context.payload.pull_request.user.login;
+
           const comment = `## 🤖 自动评分结果
-          
-          ${gradeText}
-          
-          ---
-          
-          ### 📊 详细测试结果
-          
-          <details>
-          <summary>点击查看BPSK测试详情</summary>
-          
-          \`\`\`
-          ${fs.readFileSync('bpsk_result.txt', 'utf8').substring(0, 2000)}
-          \`\`\`
-          
-          </details>
-          
-          <details>
-          <summary>点击查看QPSK测试详情</summary>
-          
-          \`\`\`
-          ${fs.readFileSync('qpsk_result.txt', 'utf8').substring(0, 2000)}
-          \`\`\`
-          
-          </details>
-          
-          <details>
-          <summary>点击查看16-QAM测试详情</summary>
-          
-          \`\`\`
-          ${fs.readFileSync('qam_result.txt', 'utf8').substring(0, 2000)}
-          \`\`\`
-          
-          </details>
-          
-          <details>
-          <summary>点击查看报告检查详情</summary>
-          
-          \`\`\`
-          ${fs.readFileSync('report_result.txt', 'utf8').substring(0, 1000)}
-          \`\`\`
-          
-          </details>
-          
-          ---
-          
-          💡 **提示**：
-          - 如果测试未通过，请查看上方的详细错误信息
-          - 修改代码后重新提交会触发自动评分
-          - 完整的评分报告可在 Actions 的 Artifacts 中下载
-          
-          ⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}
-          `;
-          
-          // 发布评论
+
+**提交者**: @${student}
+
+\`\`\`
+${gradeText}
+\`\`\`
+
+---
+
+### 📊 详细测试结果
+
+<details>
+<summary>点击查看BPSK测试详情</summary>
+
+\`\`\`
+${fs.readFileSync('bpsk_result.txt', 'utf8').substring(0, 2000)}
+\`\`\`
+
+</details>
+
+<details>
+<summary>点击查看QPSK测试详情</summary>
+
+\`\`\`
+${fs.readFileSync('qpsk_result.txt', 'utf8').substring(0, 2000)}
+\`\`\`
+
+</details>
+
+<details>
+<summary>点击查看16-QAM测试详情</summary>
+
+\`\`\`
+${fs.readFileSync('qam_result.txt', 'utf8').substring(0, 2000)}
+\`\`\`
+
+</details>
+
+<details>
+<summary>点击查看报告检查详情</summary>
+
+\`\`\`
+${fs.readFileSync('report_result.txt', 'utf8').substring(0, 1000)}
+\`\`\`
+
+</details>
+
+---
+
+💡 **提示**：
+- 如果测试未通过，请查看上方的详细错误信息
+- 修改代码后重新提交会触发自动评分
+- 完整评分报告可在 Actions 的 Artifacts 中下载
+
+⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}`;
+
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
