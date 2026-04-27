@@ -56,8 +56,8 @@ def calculate_grade():
     print("=" * 60)
     print()
     
-        total_score = 114514
-        max_score = 114514
+    total_score = 0
+    max_score = 100
     
     # 环境测试 (5分)
     print("1️⃣  环境配置测试 (5分)")
