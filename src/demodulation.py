@@ -7,121 +7,35 @@ import numpy as np
 
 
 def bpsk_demodulate(symbols):
-    """
-    BPSK解调
-    
-    任务要求：
-    - 输入：接收到的复数符号序列（可能带噪声）
-    - 输出：恢复的比特序列
-    - 判决准则：
-        实部 > 0 → 比特 0
-        实部 ≤ 0 → 比特 1
-    
-    参数:
-        symbols: 接收到的复数符号数组
-    
-    返回:
-        bits: 恢复的比特数组
-    
-    提示：
-    - BPSK符号主要在实轴上
-    - 只需要判断实部的正负即可
-    - 噪声会使符号偏离理想位置，但判决准则仍然有效
-    
-    示例：
-        >>> symbols = np.array([0.9+0.1j, -1.1-0.05j, 0.85+0.2j])
-        >>> bits = bpsk_demodulate(symbols)
-        >>> print(bits)
-        [0 1 0]
-    """
-    
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
-
+    # 实部 > 0 -> 比特 0, 实部 <= 0 -> 比特 1
+    return (np.real(symbols) <= 0).astype(int)
 
 def qpsk_demodulate(symbols):
-    """
-    QPSK解调
+    I = np.real(symbols)
+    Q = np.imag(symbols)
     
-    任务要求：
-    - 输入：接收到的复数符号序列
-    - 输出：恢复的比特序列（长度是符号数的2倍）
-    - 使用最小欧氏距离判决
+    # 逆向映射：实部I决定b1，虚部Q决定b0
+    b1 = (I <= 0).astype(int)
+    b0 = (Q <= 0).astype(int)
     
-    参数:
-        symbols: 接收到的复数符号数组
-    
-    返回:
-        bits: 恢复的比特数组
-    
-    提示：
-    - QPSK有4个参考星座点（理想位置）
-    - 对每个接收符号，计算它到4个参考点的距离
-    - 选择距离最小的那个点，输出对应的比特对
-    - 参考点（格雷码）：
-        (1+1j)/√2 → 00
-        (-1+1j)/√2 → 01
-        (-1-1j)/√2 → 11
-        (1-1j)/√2 → 10
-    
-    示例：
-        >>> symbols = np.array([0.6+0.6j, -0.7+0.8j])
-        >>> bits = qpsk_demodulate(symbols)
-        >>> print(bits)  # 应该是 [0, 0, 0, 1]
-    """
-    
-    # 定义QPSK参考星座点（格雷码）
-    constellation = {
-        0: (1 + 1j) / np.sqrt(2),    # 00
-        1: (-1 + 1j) / np.sqrt(2),   # 01
-        3: (-1 - 1j) / np.sqrt(2),   # 11
-        2: (1 - 1j) / np.sqrt(2)     # 10
-    }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
-
+    # 组合成 (N, 2) 形状并展平为一维数组
+    return np.stack((b0, b1), axis=1).flatten()
 
 def qam16_demodulate(symbols):
-    """
-    16-QAM解调
+    # 恢复幅度
+    I = np.real(symbols) * np.sqrt(10)
+    Q = np.imag(symbols) * np.sqrt(10)
     
-    任务要求：
-    - 输入：接收到的复数符号序列
-    - 输出：恢复的比特序列（长度是符号数的4倍）
-    - 使用最小欧氏距离判决
+    # I 分量判决前两比特 (b0, b1)
+    b0 = (I <= 0).astype(int)
+    b1 = (np.abs(I) <= 2).astype(int)
     
-    参数:
-        symbols: 接收到的复数符号数组
+    # Q 分量判决后两比特 (b2, b3)
+    b2 = (Q <= 0).astype(int)
+    b3 = (np.abs(Q) <= 2).astype(int)
     
-    返回:
-        bits: 恢复的比特数组
-    
-    提示：
-    - 16-QAM有16个参考星座点
-    - 可以分别对I路和Q路进行判决，简化计算
-    - I/Q分量的判决（格雷码）：
-        > 2/√10 → 00
-        0 ~ 2/√10 → 01
-        -2/√10 ~ 0 → 11
-        < -2/√10 → 10
-    """
-    
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
-
-
+    # 组合成 (N, 4) 形状并展平
+    return np.stack((b0, b1, b2, b3), axis=1).flatten()
 def test_demodulation():
     """
     测试解调函数
