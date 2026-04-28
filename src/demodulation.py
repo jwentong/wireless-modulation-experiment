@@ -37,8 +37,9 @@ def bpsk_demodulate(symbols):
     
     # TODO: 实现BPSK解调
     # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    real_parts = np.real(symbols)
+    bits = (real_parts <= 0).astype(int)
+    return bits
 
 
 def qpsk_demodulate(symbols):
@@ -80,13 +81,28 @@ def qpsk_demodulate(symbols):
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
     
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+    # 参考点数组和对应的比特对（按同样顺序）
+    refs = np.array([
+        (1 + 1j) / np.sqrt(2),  # 00
+        (-1 + 1j) / np.sqrt(2), # 01
+        (-1 - 1j) / np.sqrt(2), # 11
+        (1 - 1j) / np.sqrt(2)   # 10
+    ], dtype=np.complex128)
+
+    bits_map = np.array([
+        [0, 0],
+        [0, 1],
+        [1, 1],
+        [1, 0]
+    ], dtype=int)
+
+    symbols = np.array(symbols, dtype=np.complex128)
+    dists = np.abs(symbols[:, None] - refs[None, :]) ** 2
+    idx = np.argmin(dists, axis=1)
+
+    bits_pairs = bits_map[idx]
+    bits = bits_pairs.reshape(-1)
+    return bits
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +130,32 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+    symbols = np.array(symbols, dtype=np.complex128)
+    norm = np.sqrt(10)
+
+    # 判决阈值
+    thr = 2.0 / norm
+
+    real = np.real(symbols)
+    imag = np.imag(symbols)
+
+    def decide_pair(x):
+        if x > thr:
+            return (0, 0)
+        elif x > 0:
+            return (0, 1)
+        elif x > -thr:
+            return (1, 1)
+        else:
+            return (1, 0)
+
+    bits_list = []
+    for re, im in zip(real, imag):
+        i_bits = decide_pair(re)
+        q_bits = decide_pair(im)
+        bits_list.extend([i_bits[0], i_bits[1], q_bits[0], q_bits[1]])
+
+    return np.array(bits_list, dtype=int)
 
 
 def test_demodulation():

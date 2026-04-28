@@ -24,7 +24,7 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     """
     
     if snr_range is None:
-        snr_range = np.arange(0, 16, 2)  # 0, 2, 4, ..., 14 dB
+        snr_range = np.arange(0, 16, 1)  # 0,1,2,...,15 dB
     
     ber_values = []
     
@@ -45,24 +45,21 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     else:
         raise ValueError(f"不支持的调制方式: {modulation_scheme}")
     
+    # 根据调制方式调整比特长度要求
+    if modulation_scheme == 'BPSK':
+        bits_tx = generate_random_bits(num_bits)
+    elif modulation_scheme == 'QPSK':
+        bits_tx = generate_random_bits((num_bits // 2) * 2)
+    else:  # 16QAM
+        bits_tx = generate_random_bits((num_bits // 4) * 4)
+
     # 对每个SNR值进行测试
     for snr_db in snr_range:
-        # TODO: 完成性能测试的主循环
-        # 提示步骤：
-        # 1. 生成随机比特序列
-        # 2. 调制
-        # 3. 添加AWGN噪声
-        # 4. 解调
-        # 5. 计算BER
-        # 6. 将BER添加到ber_values列表
-        
-        # 你的代码：
-        bits_tx = generate_random_bits(num_bits)
         symbols = modulate_func(bits_tx)
         symbols_rx = add_awgn(symbols, snr_db)
         bits_rx = demodulate_func(symbols_rx)
         ber = calculate_ber(bits_tx, bits_rx)
-        
+
         ber_values.append(ber)
         print(f"SNR = {snr_db:2d} dB, BER = {ber:.6f}")
     
@@ -79,7 +76,7 @@ def compare_modulations():
     print("数字调制性能对比测试")
     print("=" * 50)
     
-    snr_range = np.arange(0, 16, 2)
+    snr_range = np.arange(0, 16, 1)
     
     # TODO: 测试各种调制方式并绘制对比图
     # 提示：
@@ -89,13 +86,13 @@ def compare_modulations():
     
     try:
         # 测试BPSK
-        snr_bpsk, ber_bpsk = test_ber_performance('BPSK', num_bits=10000, snr_range=snr_range)
+        snr_bpsk, ber_bpsk = test_ber_performance('BPSK', num_bits=20000, snr_range=snr_range)
         
         # 测试QPSK
-        snr_qpsk, ber_qpsk = test_ber_performance('QPSK', num_bits=10000, snr_range=snr_range)
+        snr_qpsk, ber_qpsk = test_ber_performance('QPSK', num_bits=20000, snr_range=snr_range)
         
         # 测试16-QAM
-        snr_qam, ber_qam = test_ber_performance('16QAM', num_bits=10000, snr_range=snr_range)
+        snr_qam, ber_qam = test_ber_performance('16QAM', num_bits=20000, snr_range=snr_range)
         
         # 绘制对比图
         import matplotlib.pyplot as plt
@@ -139,6 +136,45 @@ def main():
     
     # 选项2: 对比测试（推荐）
     compare_modulations()
+
+
+def run_and_save_ber_performance(num_bits=20000, snr_min=0, snr_max=15, step=1):
+    """运行仿真（0~15 dB，步长1 dB），并保存 results/ber_performance.png"""
+    snr_range = np.arange(snr_min, snr_max + 1, step)
+    snr_bpsk, ber_bpsk = test_ber_performance('BPSK', num_bits=num_bits, snr_range=snr_range)
+    snr_qpsk, ber_qpsk = test_ber_performance('QPSK', num_bits=num_bits, snr_range=snr_range)
+    snr_qam, ber_qam = test_ber_performance('16QAM', num_bits=num_bits, snr_range=snr_range)
+
+    import matplotlib.pyplot as plt
+    import os
+
+    plt.figure(figsize=(10, 7))
+    plt.semilogy(snr_bpsk, ber_bpsk, 'b-o', label='BPSK (sim)', linewidth=2)
+    plt.semilogy(snr_qpsk, ber_qpsk, 'r-s', label='QPSK (sim)', linewidth=2)
+    plt.semilogy(snr_qam, ber_qam, 'g-^', label='16-QAM (sim)', linewidth=2)
+
+    # 叠加理论曲线（若可用）
+    try:
+        from scipy.special import erfc
+        snr_lin = 10 ** (snr_bpsk / 10.0)
+        ber_bpsk_theory = 0.5 * erfc(np.sqrt(snr_lin))
+        plt.semilogy(snr_bpsk, ber_bpsk_theory, 'b--', label='BPSK (theory)')
+    except Exception:
+        pass
+
+    plt.xlabel('SNR (dB)')
+    plt.ylabel('Bit Error Rate (BER)')
+    plt.title('BER Performance (Simulation)')
+    plt.grid(True, which='both', linestyle='--', alpha=0.4)
+    plt.legend()
+
+    os.makedirs('results', exist_ok=True)
+    filepath = os.path.join('results', 'ber_performance.png')
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"BER 性能图已保存到: {filepath}")
+    return filepath
 
 
 if __name__ == "__main__":
