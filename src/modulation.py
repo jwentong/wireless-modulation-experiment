@@ -42,10 +42,10 @@ def bpsk_modulate(bits):
     # 方法2: 使用数学运算 1 - 2*bits
     # 方法3: 使用字典映射
     
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    # 直接使用数学运算实现映射：0 → +1，1 → -1
+    symbols = 1 - 2 * bits
+    # 返回复数类型符号以便与其他调制函数接口一致
+    return symbols.astype(np.complex128)
 
 
 def qpsk_modulate(bits):
@@ -84,16 +84,20 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+    # 将输入转为NumPy数组，保证元素可用于向量运算
+    bits = np.asarray(bits, dtype=np.int8)
+    if bits.ndim != 1:
+        raise ValueError("QPSK要求一维比特序列")
+
+    # 重新分组为每对比特对应一个符号
+    bit_pairs = bits.reshape(-1, 2)
+
+    # 符号映射：00→(1+1j), 01→(-1+1j), 11→(-1-1j), 10→(1-1j)
+    i = 1 - 2 * bit_pairs[:, 1]
+    q = 1 - 2 * bit_pairs[:, 0]
+
+    symbols = (i + 1j * q) / np.sqrt(2)
+    return symbols.astype(np.complex128)
 
 
 def qam16_modulate(bits):
@@ -143,18 +147,28 @@ def qam16_modulate(bits):
     # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
     # 4. 归一化：除以√10使平均功率为1
     
-    # 格雷码映射字典（可选使用）
+    # 格雷码映射字典
     gray_map = {
         (0, 0): 3,
         (0, 1): 1,
         (1, 1): -1,
         (1, 0): -3
     }
-    
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+
+    bits = np.asarray(bits, dtype=np.int8)
+    if bits.ndim != 1:
+        raise ValueError("16-QAM要求一维比特序列")
+
+    symbol_groups = bits.reshape(-1, 4)
+    i_bits = symbol_groups[:, :2]
+    q_bits = symbol_groups[:, 2:]
+
+    # 使用格雷码映射前2位到I分量，后2位到Q分量
+    i = np.array([gray_map[tuple(pair)] for pair in i_bits], dtype=np.float64)
+    q = np.array([gray_map[tuple(pair)] for pair in q_bits], dtype=np.float64)
+
+    symbols = (i + 1j * q) / np.sqrt(10)
+    return symbols.astype(np.complex128)
 
 
 def test_modulation():

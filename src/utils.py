@@ -33,8 +33,10 @@ def plot_constellation(symbols, title, filename, show_grid=True):
     """
     setup_chinese_font()
     
-    # 创建results目录（如果不存在）
-    os.makedirs('results', exist_ok=True)
+    # 创建工程根目录下的results目录（如果不存在）
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    results_dir = os.path.join(repo_root, 'results')
+    os.makedirs(results_dir, exist_ok=True)
     
     plt.figure(figsize=(8, 8))
     
@@ -65,7 +67,7 @@ def plot_constellation(symbols, title, filename, show_grid=True):
     plt.gca().set_aspect('equal', adjustable='box')
     
     # 保存
-    filepath = os.path.join('results', filename)
+    filepath = os.path.join(results_dir, filename)
     plt.savefig(filepath, dpi=300, bbox_inches='tight')
     print(f"星座图已保存到: {filepath}")
     
