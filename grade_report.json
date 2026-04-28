@@ -1,0 +1,14 @@
+{
+  "total_score": 100,
+  "max_score": 100,
+  "grade": "A (优秀)",
+  "breakdown": {
+    "environment": 5,
+    "bpsk": 25,
+    "qpsk": 25,
+    "qam16": 20,
+    "report": 0,
+    "code_quality": 5,
+    "bonus": 20
+  }
+}

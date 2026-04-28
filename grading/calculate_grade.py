@@ -13,7 +13,7 @@ def run_pytest(test_file, test_name):
     """运行pytest测试并返回结果"""
     try:
         result = subprocess.run(
-            [sys.executable, '-m', 'pytest', test_file, '-v', '--tb=short', '--json-report', '--json-report-file=temp_report.json'],
+            [sys.executable, '-X', 'utf8', '-m', 'pytest', test_file, '-v', '--tb=short', '--json-report', '--json-report-file=temp_report.json'],
             capture_output=True,
             text=True,
             timeout=60
@@ -60,20 +60,20 @@ def calculate_grade():
     max_score = 100
     
     # 环境测试 (5分)
-    print("1️⃣  环境配置测试 (5分)")
+    print("1. 环境配置测试 (5分)")
     try:
         result = subprocess.run(
-            [sys.executable, 'src/test_environment.py'],
+            [sys.executable, '-X', 'utf8', 'src/test_environment.py'],
             capture_output=True,
             text=True,
             timeout=30
         )
         if result.returncode == 0:
             env_score = 5
-            print("  ✅ 环境测试通过: +5分")
+            print("  环境测试通过: +5分")
         else:
             env_score = 0
-            print("  ❌ 环境测试失败: 0分")
+            print("  环境测试失败: 0分")
     except:
         env_score = 0
         print("  ❌ 环境测试失败: 0分")
@@ -82,7 +82,7 @@ def calculate_grade():
     print()
     
     # BPSK测试 (25分)
-    print("2️⃣  BPSK调制测试 (25分)")
+    print("2. BPSK调制测试 (25分)")
     passed, total, success = run_pytest('grading/test_bpsk.py', 'BPSK')
     if total > 0:
         bpsk_score = int(25 * passed / total)
@@ -96,7 +96,7 @@ def calculate_grade():
     print()
     
     # QPSK测试 (25分)
-    print("3️⃣  QPSK调制测试 (25分)")
+    print("3. QPSK调制测试 (25分)")
     passed, total, success = run_pytest('grading/test_qpsk.py', 'QPSK')
     if total > 0:
         qpsk_score = int(25 * passed / total)
@@ -110,7 +110,7 @@ def calculate_grade():
     print()
     
     # 16-QAM测试 (20分)
-    print("4️⃣  16-QAM调制测试 (20分)")
+    print("4. 16-QAM调制测试 (20分)")
     passed, total, success = run_pytest('grading/test_qam16.py', '16-QAM')
     if total > 0:
         qam_score = int(20 * passed / total)
@@ -124,10 +124,10 @@ def calculate_grade():
     print()
     
     # 实验报告 (15分)
-    print("5️⃣  实验报告检查 (15分)")
+    print("5. 实验报告检查 (15分)")
     try:
         result = subprocess.run(
-            [sys.executable, 'grading/check_report.py'],
+            [sys.executable, '-X', 'utf8', 'grading/check_report.py'],
             capture_output=True,
             text=True,
             timeout=10
@@ -148,7 +148,7 @@ def calculate_grade():
     print()
     
     # 代码质量检查 (pylint) (-10~+5分)
-    print("6️⃣  代码质量检查 (pylint)")
+    print("6. 代码质量检查 (pylint)")
     try:
         result = subprocess.run(
             [sys.executable, '-m', 'pylint', 'src/modulation.py', '--score=y'],
@@ -183,7 +183,7 @@ def calculate_grade():
     print()
     
     # 选做加分项
-    print("7️⃣  选做任务加分")
+    print("7. 选做任务加分")
     bonus_score = 0
     
     # 检查解调函数
@@ -192,15 +192,15 @@ def calculate_grade():
             content = f.read()
             if 'raise NotImplementedError' not in content:
                 bonus_score += 10
-                print("  ✅ 解调功能已实现: +10分")
+                print("  解调功能已实现: +10分")
     
     # 检查性能测试
     if os.path.exists('results/ber_comparison.png') or os.path.exists('results/ber_curve.png'):
         bonus_score += 10
-        print("  ✅ BER性能分析完成: +10分")
+        print("  BER性能分析完成: +10分")
     
     if bonus_score == 0:
-        print("  ℹ️ 未完成选做任务: 0分")
+        print("  未完成选做任务: 0分")
     
     total_score += bonus_score
     print()
