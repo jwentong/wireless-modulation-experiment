@@ -42,10 +42,9 @@ def bpsk_modulate(bits):
     # 方法2: 使用数学运算 1 - 2*bits
     # 方法3: 使用字典映射
     
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    bits = np.asarray(bits)
+    symbols = (1 - 2 * bits).astype(np.complex128)
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -90,10 +89,21 @@ def qpsk_modulate(bits):
     # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
     # 3. 别忘了归一化：除以√2使符号功率为1
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+    bits = np.asarray(bits)
+    bit_pairs = bits.reshape(-1, 2)
+
+    gray_map = {
+        (0, 0): 1 + 1j,
+        (0, 1): -1 + 1j,
+        (1, 1): -1 - 1j,
+        (1, 0): 1 - 1j
+    }
+
+    symbols = np.array(
+        [gray_map[tuple(pair)] for pair in bit_pairs],
+        dtype=np.complex128
+    ) / np.sqrt(2)
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -151,10 +161,14 @@ def qam16_modulate(bits):
         (1, 0): -3
     }
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+    bits = np.asarray(bits)
+    bit_groups = bits.reshape(-1, 4)
+
+    i_components = np.array([gray_map[tuple(group[:2])] for group in bit_groups])
+    q_components = np.array([gray_map[tuple(group[2:])] for group in bit_groups])
+
+    symbols = (i_components + 1j * q_components).astype(np.complex128) / np.sqrt(10)
+    return symbols
 
 
 def test_modulation():
