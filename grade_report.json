@@ -1,0 +1,14 @@
+{
+  "total_score": 20,
+  "max_score": 100,
+  "grade": "F (不及格)",
+  "breakdown": {
+    "environment": 0,
+    "bpsk": 0,
+    "qpsk": 0,
+    "qam16": 0,
+    "report": 0,
+    "code_quality": 0,
+    "bonus": 20
+  }
+}
