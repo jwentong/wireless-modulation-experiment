@@ -36,16 +36,10 @@ def bpsk_modulate(bits):
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
     
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
-    
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    # 使用公式 symbols = 1 - 2 * bits
+    symbols = 1 - 2 * bits
+    # 返回复数类型以统一接口
+    return symbols.astype(np.complex64)
 
 
 def qpsk_modulate(bits):
@@ -84,16 +78,19 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
+    # 将比特序列reshape成(N/2, 2)
+    bits_reshaped = bits.reshape(-1, 2)
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    # 根据格雷码映射计算实部和虚部
+    # 实部：b1=0 -> 1, b1=1 -> -1
+    real = np.where(bits_reshaped[:, 1] == 0, 1, -1)
+    # 虚部：b0=0 -> 1, b0=1 -> -1
+    imag = np.where(bits_reshaped[:, 0] == 0, 1, -1)
     
-    # return symbols
+    # 生成复数符号并归一化
+    symbols = (real + 1j * imag) / np.sqrt(2)
+    
+    return symbols.astype(np.complex64)
 
 
 def qam16_modulate(bits):
@@ -134,27 +131,24 @@ def qam16_modulate(bits):
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
     
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/4, 4)的形状
-    # 2. 对每组4个比特：
-    #    - 前2位映射到I分量（实部）
-    #    - 后2位映射到Q分量（虚部）
-    # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
-    # 4. 归一化：除以√10使平均功率为1
+    # 将比特序列reshape成(N/4, 4)
+    bits_reshaped = bits.reshape(-1, 4)
     
-    # 格雷码映射字典（可选使用）
-    gray_map = {
-        (0, 0): 3,
-        (0, 1): 1,
-        (1, 1): -1,
-        (1, 0): -3
-    }
+    # 格雷码映射值
+    gray_values = np.array([3, 1, -3, -1])
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
+    # I分量：前2位
+    i_indices = 2 * bits_reshaped[:, 0] + bits_reshaped[:, 1]
+    i_values = gray_values[i_indices]
     
-    # return symbols
+    # Q分量：后2位
+    q_indices = 2 * bits_reshaped[:, 2] + bits_reshaped[:, 3]
+    q_values = gray_values[q_indices]
+    
+    # 生成复数符号并归一化
+    symbols = (i_values + 1j * q_values) / np.sqrt(10)
+    
+    return symbols.astype(np.complex64)
 
 
 def test_modulation():
