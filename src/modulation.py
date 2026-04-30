@@ -44,8 +44,8 @@ def bpsk_modulate(bits):
     
     # 你的代码：
     
-    bits = np.array(bits)
-    symbols = 1 - 2 * bits
+    bits = np.array(bits, dtype=int)
+    symbols = (1 - 2 * bits).astype(complex)
     return symbols
     # return symbols
 
@@ -81,7 +81,7 @@ def qpsk_modulate(bits):
         >>> print(symbols)
         [ 0.707+0.707j -0.707+0.707j -0.707-0.707j  0.707-0.707j]
     """
-    
+    bits = np.array(bits, dtype=int)
     # 检查输入长度
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
@@ -140,7 +140,7 @@ def qam16_modulate(bits):
         >>> symbols = qam16_modulate(bits)
         # 应该得到两个符号在正确位置
     """
-    
+    bits = np.array(bits, dtype=int)
     # 检查输入长度
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
