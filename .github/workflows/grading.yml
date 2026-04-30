@@ -19,12 +19,12 @@ jobs:
 
     steps:
     - name: 检出代码
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: 设置Python环境
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5.6.0
       with:
         python-version: '3.11'
 
@@ -81,9 +81,11 @@ jobs:
         cat grade_result.txt
 
     - name: 上传评分报告
-      uses: actions/upload-artifact@v4
+      if: always()
+      uses: actions/upload-artifact@v4.6.2
       with:
         name: grading-report-${{ github.event.pull_request.user.login || github.actor }}
+        if-no-files-found: warn
         path: |
           grade_report.json
           grade_result.txt
@@ -93,9 +95,23 @@ jobs:
           report_result.txt
           pylint_result.txt
 
+    - name: 写入评分摘要
+      if: always()
+      run: |
+        echo "## 🤖 自动评分结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f grade_result.txt ]; then
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat grade_result.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "评分报告未生成，请查看前序步骤日志。" >> $GITHUB_STEP_SUMMARY
+        fi
+
     - name: 评论PR
       if: github.event_name == 'pull_request_target'
-      uses: actions/github-script@v7
+      continue-on-error: true
+      uses: actions/github-script@v7.0.1
       with:
         script: |
           const fs = require('fs');
@@ -107,68 +123,82 @@ jobs:
             gradeText = '评分系统运行失败，请检查代码。';
           }
 
+          const readFile = (path, maxLength) => {
+            try {
+              return fs.readFileSync(path, 'utf8').substring(0, maxLength);
+            } catch (error) {
+              return `${path} 未生成，请查看 Actions 日志。`;
+            }
+          };
+
           const student = context.payload.pull_request.user.login;
 
-          const comment = `## 🤖 自动评分结果
+          const comment = [
+            '## 🤖 自动评分结果',
+            '',
+            `**提交者**: @${student}`,
+            '',
+            '```',
+            gradeText,
+            '```',
+            '',
+            '---',
+            '',
+            '### 📊 详细测试结果',
+            '',
+            '<details>',
+            '<summary>点击查看BPSK测试详情</summary>',
+            '',
+            '```',
+            readFile('bpsk_result.txt', 2000),
+            '```',
+            '',
+            '</details>',
+            '',
+            '<details>',
+            '<summary>点击查看QPSK测试详情</summary>',
+            '',
+            '```',
+            readFile('qpsk_result.txt', 2000),
+            '```',
+            '',
+            '</details>',
+            '',
+            '<details>',
+            '<summary>点击查看16-QAM测试详情</summary>',
+            '',
+            '```',
+            readFile('qam_result.txt', 2000),
+            '```',
+            '',
+            '</details>',
+            '',
+            '<details>',
+            '<summary>点击查看报告检查详情</summary>',
+            '',
+            '```',
+            readFile('report_result.txt', 1000),
+            '```',
+            '',
+            '</details>',
+            '',
+            '---',
+            '',
+            '💡 **提示**：',
+            '- 如果测试未通过，请查看上方的详细错误信息',
+            '- 修改代码后重新提交会触发自动评分',
+            '- 完整评分报告可在 Actions 的 Artifacts 中下载',
+            '',
+            `⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}`
+          ].join('\n');
 
-**提交者**: @${student}
-
-\`\`\`
-${gradeText}
-\`\`\`
-
----
-
-### 📊 详细测试结果
-
-<details>
-<summary>点击查看BPSK测试详情</summary>
-
-\`\`\`
-${fs.readFileSync('bpsk_result.txt', 'utf8').substring(0, 2000)}
-\`\`\`
-
-</details>
-
-<details>
-<summary>点击查看QPSK测试详情</summary>
-
-\`\`\`
-${fs.readFileSync('qpsk_result.txt', 'utf8').substring(0, 2000)}
-\`\`\`
-
-</details>
-
-<details>
-<summary>点击查看16-QAM测试详情</summary>
-
-\`\`\`
-${fs.readFileSync('qam_result.txt', 'utf8').substring(0, 2000)}
-\`\`\`
-
-</details>
-
-<details>
-<summary>点击查看报告检查详情</summary>
-
-\`\`\`
-${fs.readFileSync('report_result.txt', 'utf8').substring(0, 1000)}
-\`\`\`
-
-</details>
-
----
-
-💡 **提示**：
-- 如果测试未通过，请查看上方的详细错误信息
-- 修改代码后重新提交会触发自动评分
-- 完整评分报告可在 Actions 的 Artifacts 中下载
-
-⏰ **评分时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}`;
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+          try {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          } catch (error) {
+            core.warning(`PR评论失败：${error.message}。评分结果已写入 Actions Summary，并上传到 Artifacts。`);
+          }

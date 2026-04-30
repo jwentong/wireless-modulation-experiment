@@ -7,39 +7,29 @@ import subprocess
 import sys
 import os
 import json
+import re
 
 
 def run_pytest(test_file, test_name):
     """运行pytest测试并返回结果"""
     try:
         result = subprocess.run(
-            [sys.executable, '-m', 'pytest', test_file, '-v', '--tb=short', '--json-report', '--json-report-file=temp_report.json'],
+            [sys.executable, '-m', 'pytest', test_file, '-v', '--tb=short'],
             capture_output=True,
             text=True,
             timeout=60
         )
-        
-        # 尝试解析JSON报告
-        if os.path.exists('temp_report.json'):
-            with open('temp_report.json', 'r') as f:
-                report = json.load(f)
-            os.remove('temp_report.json')
-            
-            total = report.get('summary', {}).get('total', 0)
-            passed = report.get('summary', {}).get('passed', 0)
-            
-            return passed, total, result.returncode == 0
-        else:
-            # 回退方案：解析输出文本
-            if 'passed' in result.stdout:
-                # 尝试从输出中提取通过的测试数
-                import re
-                match = re.search(r'(\d+) passed', result.stdout)
-                if match:
-                    passed = int(match.group(1))
-                    return passed, passed, True
-            
-            return 0, 1, False
+
+        output = result.stdout + "\n" + result.stderr
+        summary = parse_pytest_summary(output)
+
+        if summary['total'] > 0:
+            return summary['passed'], summary['total'], result.returncode == 0
+
+        print(f"  ❌ {test_name}测试结果解析失败")
+        if output.strip():
+            print(output[-1000:])
+        return 0, 1, False
             
     except subprocess.TimeoutExpired:
         print(f"  ⏱️ {test_name}超时")
@@ -47,6 +37,43 @@ def run_pytest(test_file, test_name):
     except Exception as e:
         print(f"  ❌ {test_name}运行失败: {e}")
         return 0, 1, False
+
+
+def parse_pytest_summary(output):
+    """从pytest标准输出中解析通过、失败、跳过和错误数量。"""
+    counts = {
+        'passed': 0,
+        'failed': 0,
+        'skipped': 0,
+        'error': 0,
+        'errors': 0
+    }
+
+    for key in counts:
+        match = re.search(rf'(\d+)\s+{key}\b', output)
+        if match:
+            counts[key] = int(match.group(1))
+
+    total = sum(counts.values())
+    return {
+        'passed': counts['passed'],
+        'total': total
+    }
+
+
+def calculate_component_score(passed, total, function_score, image_score):
+    """按算法测试和星座图文件检查分别计算分数。"""
+    if total <= 0:
+        return 0
+
+    function_tests = max(total - 1, 1)
+    function_passed = min(passed, function_tests)
+    score = function_score * function_passed / function_tests
+
+    if passed == total:
+        score += image_score
+
+    return int(round(score))
 
 
 def calculate_grade():
@@ -85,8 +112,9 @@ def calculate_grade():
     print("2️⃣  BPSK调制测试 (25分)")
     passed, total, success = run_pytest('grading/test_bpsk.py', 'BPSK')
     if total > 0:
-        bpsk_score = int(25 * passed / total)
+        bpsk_score = calculate_component_score(passed, total, function_score=15, image_score=10)
         print(f"  通过测试: {passed}/{total}")
+        print("  评分规则: 算法正确性15分 + 星座图10分")
         print(f"  得分: {bpsk_score}/25")
     else:
         bpsk_score = 0
@@ -99,8 +127,9 @@ def calculate_grade():
     print("3️⃣  QPSK调制测试 (25分)")
     passed, total, success = run_pytest('grading/test_qpsk.py', 'QPSK')
     if total > 0:
-        qpsk_score = int(25 * passed / total)
+        qpsk_score = calculate_component_score(passed, total, function_score=15, image_score=10)
         print(f"  通过测试: {passed}/{total}")
+        print("  评分规则: 算法正确性15分 + 星座图10分")
         print(f"  得分: {qpsk_score}/25")
     else:
         qpsk_score = 0
@@ -113,8 +142,9 @@ def calculate_grade():
     print("4️⃣  16-QAM调制测试 (20分)")
     passed, total, success = run_pytest('grading/test_qam16.py', '16-QAM')
     if total > 0:
-        qam_score = int(20 * passed / total)
+        qam_score = calculate_component_score(passed, total, function_score=12, image_score=8)
         print(f"  通过测试: {passed}/{total}")
+        print("  评分规则: 算法正确性12分 + 星座图8分")
         print(f"  得分: {qam_score}/20")
     else:
         qam_score = 0
@@ -133,7 +163,6 @@ def calculate_grade():
             timeout=10
         )
         # 从输出中提取分数
-        import re
         match = re.search(r'最终报告得分:\s*(\d+)', result.stdout)
         if match:
             report_score = int(match.group(1))
@@ -158,7 +187,6 @@ def calculate_grade():
         )
         
         # 提取pylint分数
-        import re
         match = re.search(r'Your code has been rated at ([\d.]+)/10', result.stdout)
         if match:
             pylint_score_raw = float(match.group(1))
@@ -204,6 +232,8 @@ def calculate_grade():
     
     total_score += bonus_score
     print()
+
+    total_score = max(0, min(total_score, max_score))
     
     # 最终评分
     print("=" * 60)
