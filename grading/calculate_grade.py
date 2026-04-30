@@ -280,4 +280,3 @@ def calculate_grade():
 
 if __name__ == "__main__":
     calculate_grade()
-

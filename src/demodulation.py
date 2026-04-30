@@ -35,10 +35,9 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    # BPSK解调：实部>0判为0，否则判为1
+    bits = (np.real(symbols) <= 0).astype(int)
+    return bits
 
 
 def qpsk_demodulate(symbols):
@@ -72,21 +71,25 @@ def qpsk_demodulate(symbols):
         >>> print(bits)  # 应该是 [0, 0, 0, 1]
     """
     
-    # 定义QPSK参考星座点（格雷码）
-    constellation = {
-        0: (1 + 1j) / np.sqrt(2),    # 00
-        1: (-1 + 1j) / np.sqrt(2),   # 01
-        3: (-1 - 1j) / np.sqrt(2),   # 11
-        2: (1 - 1j) / np.sqrt(2)     # 10
+    # QPSK解调：最小欧氏距离判决
+    ref_points = [
+        (1 + 1j) / np.sqrt(2),   # 00
+        (-1 + 1j) / np.sqrt(2),  # 01
+        (1 - 1j) / np.sqrt(2),   # 10
+        (-1 - 1j) / np.sqrt(2)   # 11
+    ]
+    bit_map = {
+        0: [0, 0],
+        1: [0, 1],
+        2: [1, 0],
+        3: [1, 1]
     }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+    bits_out = []
+    for s in symbols:
+        dists = [np.abs(s - pt) for pt in ref_points]
+        idx = int(np.argmin(dists))
+        bits_out.extend(bit_map[idx])
+    return np.array(bits_out, dtype=int)
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +117,24 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+    # 16-QAM解调：分别判决I/Q分量
+    norm = np.sqrt(10)
+    I = np.real(symbols) * norm
+    Q = np.imag(symbols) * norm
+    def gray_decode(x):
+        if x > 2:
+            return [0, 0]
+        elif x > 0:
+            return [0, 1]
+        elif x > -2:
+            return [1, 1]
+        else:
+            return [1, 0]
+    bits_out = []
+    for i, q in zip(I, Q):
+        bits_out.extend(gray_decode(i))
+        bits_out.extend(gray_decode(q))
+    return np.array(bits_out, dtype=int)
 
 
 def test_demodulation():
