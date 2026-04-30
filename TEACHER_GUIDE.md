@@ -9,11 +9,11 @@
 ### 1.1 创建GitHub模板仓库
 
 1. 在你的 GitHub 组织或个人账号下创建新仓库：
-
    - 仓库名：`wireless-modulation-experiment`
    - 可见性：`Public`（便于学生访问）
    - 勾选 `Template repository`（作为模板）
-1. 将本地文件推送到远程仓库：
+
+2. 将本地文件推送到远程仓库：
 
 ```bash
 cd wireless-modulation-experiment
@@ -29,7 +29,6 @@ git push -u origin main
 
 1. 进入仓库 `Settings` → `Actions` → `General`
 2. **Workflow permissions** 设置为：
-
    - ✅ `Read and write permissions`
    - ✅ `Allow GitHub Actions to create and approve pull requests`
 
@@ -38,14 +37,12 @@ git push -u origin main
 将 `grading/` 目录设置为学生不可见（可选）：
 
 **方法1**：使用私有子模块
-
 ```bash
 # 将grading移到私有仓库
 git submodule add https://github.com/jwentong/wireless-modulation-grading.git grading
 ```
 
 **方法2**：在学生 fork 后删除 grading/
-
 - 学生 fork 后，GitHub Actions 会从教师仓库拉取评分脚本
 - 在 workflow 中添加：
 
@@ -108,15 +105,15 @@ https://github.com/jwentong/wireless-modulation-experiment
 
 评分系统自动执行以下检查：
 
-| 项目       | 分值     | 检查方式                     |
-| ---------- | -------- | ---------------------------- |
-| 环境配置   | 5分      | 运行 `test_environment.py`   |
-| BPSK调制   | 25分     | pytest测试映射正确性、星座图 |
-| QPSK调制   | 25分     | pytest测试格雷码、归一化     |
-| 16-QAM调制 | 20分     | pytest测试I/Q映射、功率      |
-| 实验报告   | 15分     | 检查章节完整性、字数、图片   |
-| 代码质量   | -10~+5分 | pylint评分                   |
-| 选做加分   | +20分    | 解调函数(+10)、BER分析(+10)  |
+| 项目 | 分值 | 检查方式 |
+|------|------|----------|
+| 环境配置 | 5分 | 运行 `test_environment.py` |
+| BPSK调制 | 25分 | pytest测试映射正确性、星座图 |
+| QPSK调制 | 25分 | pytest测试格雷码、归一化 |
+| 16-QAM调制 | 20分 | pytest测试I/Q映射、功率 |
+| 实验报告 | 15分 | 检查章节完整性、字数、图片 |
+| 代码质量 | -10~+5分 | pylint评分 |
+| 选做加分 | +20分 | 解调函数(+10)、BER分析(+10) |
 
 总分：75分（基础）+ 20分（选做）+ 5分（代码质量）= 100分
 
@@ -162,13 +159,11 @@ for student in students:
 ### 问题1：学生 GitHub Actions 失败
 
 **原因**：
-
 - 依赖安装失败
 - 代码有语法错误
 - 测试超时
 
 **解决**：
-
 1. 查看 Actions 日志，找到具体错误
 2. 指导学生修改代码
 3. 重新 Push 触发评分
@@ -176,13 +171,11 @@ for student in students:
 ### 问题2：学生报告评分过低
 
 **原因**：
-
 - 缺少必要章节
 - 字数不足
 - 没有插入图片
 
 **解决**：
-
 - 提供 `REPORT_TEMPLATE.md` 模板
 - 说明评分标准
 - 允许修改后重新提交
@@ -190,20 +183,17 @@ for student in students:
 ### 问题3：学生代码雷同
 
 **检测方法**：
-
 1. 使用代码相似度检测工具（如 MOSS）
 2. 检查 Git 提交历史（是否一次性提交大量代码）
 3. 现场抽查，要求学生解释代码
 
 **处理**：
-
 - 警告并要求重新完成
 - 严重者按学术不诚信处理
 
 ### 问题4：AI生成代码质量差
 
 **指导**：
-
 - 强调理解原理比完成代码更重要
 - 要求学生在报告中说明使用AI的方式
 - 课堂上演示正确的 Copilot 使用方法
@@ -241,13 +231,11 @@ else:
 ### 6.1 难度调整
 
 **降低难度**：
-
 - 提供更多代码框架
 - 减少必做任务数量
 - 延长实验时间
 
 **提高难度**：
-
 - 要求实现更高阶调制（64-QAM、256-QAM）
 - 要求实现信道编码（卷积码、Turbo码）
 - 要求实现实时信号处理
@@ -303,7 +291,6 @@ for repo in student_repos:
 ### 7.2 监控GitHub Actions配额
 
 免费账号有限制：
-
 - Public 仓库：无限
 - Private 仓库：每月 2000 分钟
 
@@ -324,7 +311,6 @@ for repo in student_repos:
 ## 9. 许可与致谢
 
 本实验平台基于以下技术：
-
 - Python + NumPy + Matplotlib
 - GitHub + GitHub Actions
 - pytest + pylint

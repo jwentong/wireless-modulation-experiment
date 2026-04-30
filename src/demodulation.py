@@ -35,7 +35,7 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # BPSK解调实现
+    # TODO：BPSK解调实现
     # 提示：使用np.real()获取实部，然后判断正负
     # BPSK只需看实部符号：实部>0判0，否则判1
     symbols = np.asarray(symbols)
@@ -83,7 +83,7 @@ def qpsk_demodulate(symbols):
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
     
-    # QPSK解调实现
+    # TODO: 实现QPSK解调
     # 提示步骤：
     # 1. 对每个接收符号，计算到4个参考点的欧氏距离
     # 2. 找到距离最小的参考点
@@ -138,7 +138,7 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # 16-QAM解调实现
+    # TODO: 实现16-QAM解调
     # 提示：可以采用两种方法
     # 方法1：遍历16个参考点，找最小距离（简单但慢）
     # 方法2：分别判决I路和Q路（快速且实用）

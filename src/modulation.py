@@ -36,7 +36,7 @@ def bpsk_modulate(bits):
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
     
-    # BPSK调制实现
+    # TODO: 在这里实现BPSK调制
     # 提示：可以尝试以下方式之一：
     # 方法1: 使用 np.where()
     # 方法2: 使用数学运算 1 - 2*bits
@@ -95,7 +95,7 @@ def qpsk_modulate(bits):
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
     
-    # QPSK调制实现
+    # TODO: 在这里实现QPSK调制
     # 提示步骤：
     # 1. 将比特序列reshape成(N/2, 2)的形状
     # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
@@ -165,7 +165,7 @@ def qam16_modulate(bits):
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
     
-    # 16-QAM调制实现
+    # TODO: 在这里实现16-QAM调制
     # 提示步骤：
     # 1. 将比特序列reshape成(N/4, 4)的形状
     # 2. 对每组4个比特：
