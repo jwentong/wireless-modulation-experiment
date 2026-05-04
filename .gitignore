@@ -24,10 +24,10 @@ wheels/
 *.egg
 
 # 实验结果
-results/
-*.png
-*.jpg
-*.pdf
+#results/
+#*.png
+#*.jpg
+#*.pdf
 
 # IDE
 .vscode/
