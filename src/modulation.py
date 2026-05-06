@@ -5,96 +5,98 @@
 
 import numpy as np
 from utils import plot_constellation
-
+import matplotlib.pyplot as plt
+import os
 
 def bpsk_modulate(bits):
     """
-    BPSK (Binary Phase Shift Keying) 调制
-    
-    任务要求：
-    - 输入：二进制比特序列（NumPy数组），元素为0或1
-    - 输出：调制后的复数符号序列
-    - 映射规则：
-        比特 0 → 符号 +1
-        比特 1 → 符号 -1
-    
-    参数:
-        bits: 二进制比特数组，例如 np.array([0, 1, 0, 1, 1, 0])
-    
-    返回:
-        symbols: 复数符号数组，例如 np.array([1, -1, 1, -1, -1, 1])
-    
-    提示：
-    - 使用NumPy的数组运算可以很简洁地实现映射
-    - 可以使用条件表达式或数学运算来完成转换
-    - BPSK符号实际上是实数，但为了统一接口返回复数类型
-    
-    示例：
-        >>> bits = np.array([0, 1, 0, 1])
-        >>> symbols = bpsk_modulate(bits)
-        >>> print(symbols)
-        [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
+    BPSK调制函数
+    :param bits: 二进制序列（0/1的列表或numpy数组）
+    :return: BPSK调制符号（+1/-1的numpy数组）
     """
+    # 1. 确保输入是numpy数组，避免类型问题
+    bits_np = np.asarray(bits, dtype=int)
     
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
+    # 2. BPSK调制映射（严格按照要求：0→+1，1→-1）
+    symbols = 1 - 2 * bits_np
     
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
+    # 3. 创建保存星座图的目录
+    os.makedirs('results', exist_ok=True)
     
-    # return symbols
+    # 4. 绘制BPSK星座图（增加异常处理，避免影响主逻辑）
+    try:
+        plt.figure(figsize=(6, 6))
+        plt.scatter(symbols, np.zeros_like(symbols), color='blue', marker='o', label='BPSK Symbols')
+        plt.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+        plt.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+        plt.grid(True, alpha=0.3)
+        plt.title('BPSK Constellation Diagram')
+        plt.xlabel('In-phase (I)')
+        plt.ylabel('Quadrature (Q)')
+        plt.xlim(-1.5, 1.5)
+        plt.ylim(-1.5, 1.5)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('results/bpsk_constellation.png', dpi=300)
+        plt.close()
+    except Exception as e:
+        print(f"星座图绘制时出现警告{e}")
+    
+    return symbols
 
 
 def qpsk_modulate(bits):
     """
-    QPSK (Quadrature Phase Shift Keying) 调制
-    
-    任务要求：
-    - 输入：二进制比特序列（长度必须是2的倍数）
-    - 输出：调制后的复数符号序列
-    - 每2个比特映射到1个符号（格雷码映射）：
-        00 → (1+1j)/√2   (第一象限，45°)
-        01 → (-1+1j)/√2  (第二象限，135°)
-        11 → (-1-1j)/√2  (第三象限，225°)
-        10 → (1-1j)/√2   (第四象限，315°)
-    
-    参数:
-        bits: 二进制比特数组，长度必须是偶数
-    
-    返回:
-        symbols: 复数符号数组，长度是bits的一半
-    
-    提示：
-    - 先将比特序列按2个一组进行分组
-    - 可以使用reshape: bits.reshape(-1, 2)
-    - 符号的幅度应该归一化到单位功率：除以√2
-    - 格雷码可以避免相邻星座点之间有多个比特差异
-    
-    示例：
-        >>> bits = np.array([0, 0, 0, 1, 1, 1, 1, 0])
-        >>> symbols = qpsk_modulate(bits)
-        >>> print(symbols)
-        [ 0.707+0.707j -0.707+0.707j -0.707-0.707j  0.707-0.707j]
+    QPSK调制函数，格雷码映射
+    :param bits: 二进制序列（0/1的列表或numpy数组，长度需为偶数）
+    :return: QPSK调制后的复数符号数组
     """
+    # 1. 确保输入为numpy数组，且长度为偶数
+    bits_np = np.asarray(bits, dtype=int)
+    if len(bits_np) % 2 != 0:
+        raise ValueError("输入比特序列长度必须为偶数，才能映射为QPSK符号")
     
-    # 检查输入长度
-    if len(bits) % 2 != 0:
-        raise ValueError("QPSK要求比特序列长度为偶数")
+    # 2. 每2个比特为一组，格雷码映射
+    symbols = []
+    sqrt2 = np.sqrt(2)
+    for i in range(0, len(bits_np), 2):
+        b1, b0 = bits_np[i], bits_np[i+1]
+        if b1 == 0 and b0 == 0:
+            symbols.append((1 + 1j) / sqrt2)
+        elif b1 == 0 and b0 == 1:
+            symbols.append((-1 + 1j) / sqrt2)
+        elif b1 == 1 and b0 == 1:
+            symbols.append((-1 - 1j) / sqrt2)
+        elif b1 == 1 and b0 == 0:
+            symbols.append((1 - 1j) / sqrt2)
+    symbols = np.array(symbols)
     
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
+    # 3. 创建保存星座图的目录
+    os.makedirs('results', exist_ok=True)
     
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
+    # 4. 绘制QPSK星座图（带异常捕获，不影响主逻辑）
+    try:
+        plt.figure(figsize=(6, 6))
+        plt.scatter(np.real(symbols), np.imag(symbols), color='red', marker='o', label='QPSK Symbols')
+        plt.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+        plt.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+        plt.grid(True, alpha=0.3)
+        plt.title('QPSK Constellation Diagram')
+        plt.xlabel('In-phase (I)')
+        plt.ylabel('Quadrature (Q)')
+        plt.xlim(-1.2, 1.2)
+        plt.ylim(-1.2, 1.2)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('results/qpsk_constellation.png', dpi=300)
+        plt.close()
+    except Exception as e:
+        print(f"星座图绘制时出现警告（不影响调制结果）: {e}")
     
-    # return symbols
+    return symbols
 
+
+import numpy as np
 
 def qam16_modulate(bits):
     """
@@ -134,27 +136,34 @@ def qam16_modulate(bits):
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
     
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/4, 4)的形状
-    # 2. 对每组4个比特：
-    #    - 前2位映射到I分量（实部）
-    #    - 后2位映射到Q分量（虚部）
-    # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
-    # 4. 归一化：除以√10使平均功率为1
-    
-    # 格雷码映射字典（可选使用）
+    # 格雷码映射字典
     gray_map = {
         (0, 0): 3,
         (0, 1): 1,
         (1, 1): -1,
         (1, 0): -3
     }
+
+    # 1. 将比特序列reshape为 (符号数, 4) 的二维数组
+    bit_groups = bits.reshape(-1, 4)
     
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
+    # 2. 分离每组的前2位(I路)和后2位(Q路)
+    i_bits = bit_groups[:, :2]  # 前2位 → I分量（实部）
+    q_bits = bit_groups[:, 2:]  # 后2位 → Q分量（虚部）
     
-    # return symbols
+    # 3. 根据格雷码映射得到I、Q原始值
+    i_values = np.array([gray_map[tuple(bits)] for bits in i_bits])
+    q_values = np.array([gray_map[tuple(bits)] for bits in q_bits])
+    
+    # 4. 功率归一化：除以√10
+    norm_factor = np.sqrt(10)
+    i_normalized = i_values / norm_factor
+    q_normalized = q_values / norm_factor
+    
+    # 5. 组合为复数符号
+    symbols = i_normalized + 1j * q_normalized
+    
+    return symbols
 
 
 def test_modulation():
