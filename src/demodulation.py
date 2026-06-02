@@ -35,10 +35,8 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    symbols = np.asarray(symbols)
+    return (np.real(symbols) <= 0).astype(int)
 
 
 def qpsk_demodulate(symbols):
@@ -80,13 +78,15 @@ def qpsk_demodulate(symbols):
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
     
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+    symbols = np.asarray(symbols, dtype=complex)
+    labels = np.array(list(constellation.keys()))
+    points = np.array(list(constellation.values()), dtype=complex)
+
+    distances = np.abs(symbols[:, np.newaxis] - points[np.newaxis, :])
+    nearest_labels = labels[np.argmin(distances, axis=1)]
+
+    bits = np.column_stack(((nearest_labels >> 1) & 1, nearest_labels & 1))
+    return bits.reshape(-1).astype(int)
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +114,18 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+    symbols = np.asarray(symbols, dtype=complex)
+    levels = np.array([3, 1, -1, -3]) / np.sqrt(10)
+    bit_pairs = np.array([[0, 0], [0, 1], [1, 1], [1, 0]], dtype=int)
+
+    real_distances = np.abs(np.real(symbols)[:, np.newaxis] - levels[np.newaxis, :])
+    imag_distances = np.abs(np.imag(symbols)[:, np.newaxis] - levels[np.newaxis, :])
+
+    i_bits = bit_pairs[np.argmin(real_distances, axis=1)]
+    q_bits = bit_pairs[np.argmin(imag_distances, axis=1)]
+
+    bits = np.column_stack((i_bits, q_bits))
+    return bits.reshape(-1).astype(int)
 
 
 def test_demodulation():

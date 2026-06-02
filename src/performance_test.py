@@ -36,14 +36,21 @@ def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=Non
     if modulation_scheme == 'BPSK':
         modulate_func = bpsk_modulate
         demodulate_func = bpsk_demodulate
+        bits_per_symbol = 1
     elif modulation_scheme == 'QPSK':
         modulate_func = qpsk_modulate
         demodulate_func = qpsk_demodulate
+        bits_per_symbol = 2
     elif modulation_scheme == '16QAM':
         modulate_func = qam16_modulate
         demodulate_func = qam16_demodulate
+        bits_per_symbol = 4
     else:
         raise ValueError(f"不支持的调制方式: {modulation_scheme}")
+
+    num_bits = (num_bits // bits_per_symbol) * bits_per_symbol
+    if num_bits == 0:
+        raise ValueError("num_bits太小，无法生成完整调制符号")
     
     # 对每个SNR值进行测试
     for snr_db in snr_range:
