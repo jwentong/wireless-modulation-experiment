@@ -100,7 +100,9 @@ def compare_modulations():
         # 绘制对比图
         import matplotlib.pyplot as plt
         import os
-        
+        from utils import setup_chinese_font
+
+        setup_chinese_font()
         plt.figure(figsize=(10, 6))
         plt.semilogy(snr_bpsk, ber_bpsk, 'b-o', label='BPSK', linewidth=2)
         plt.semilogy(snr_qpsk, ber_qpsk, 'r-s', label='QPSK', linewidth=2)

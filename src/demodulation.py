@@ -9,53 +9,52 @@ import numpy as np
 def bpsk_demodulate(symbols):
     """
     BPSK解调
-    
+
     任务要求：
     - 输入：接收到的复数符号序列（可能带噪声）
     - 输出：恢复的比特序列
     - 判决准则：
         实部 > 0 → 比特 0
         实部 ≤ 0 → 比特 1
-    
+
     参数:
         symbols: 接收到的复数符号数组
-    
+
     返回:
         bits: 恢复的比特数组
-    
+
     提示：
     - BPSK符号主要在实轴上
     - 只需要判断实部的正负即可
     - 噪声会使符号偏离理想位置，但判决准则仍然有效
-    
+
     示例：
         >>> symbols = np.array([0.9+0.1j, -1.1-0.05j, 0.85+0.2j])
         >>> bits = bpsk_demodulate(symbols)
         >>> print(bits)
         [0 1 0]
     """
-    
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+
+    real = np.real(symbols)
+    bits = np.where(real > 0, 0, 1)
+    return bits
 
 
 def qpsk_demodulate(symbols):
     """
     QPSK解调
-    
+
     任务要求：
     - 输入：接收到的复数符号序列
     - 输出：恢复的比特序列（长度是符号数的2倍）
     - 使用最小欧氏距离判决
-    
+
     参数:
         symbols: 接收到的复数符号数组
-    
+
     返回:
         bits: 恢复的比特数组
-    
+
     提示：
     - QPSK有4个参考星座点（理想位置）
     - 对每个接收符号，计算它到4个参考点的距离
@@ -65,13 +64,13 @@ def qpsk_demodulate(symbols):
         (-1+1j)/√2 → 01
         (-1-1j)/√2 → 11
         (1-1j)/√2 → 10
-    
+
     示例：
         >>> symbols = np.array([0.6+0.6j, -0.7+0.8j])
         >>> bits = qpsk_demodulate(symbols)
         >>> print(bits)  # 应该是 [0, 0, 0, 1]
     """
-    
+
     # 定义QPSK参考星座点（格雷码）
     constellation = {
         0: (1 + 1j) / np.sqrt(2),    # 00
@@ -79,31 +78,38 @@ def qpsk_demodulate(symbols):
         3: (-1 - 1j) / np.sqrt(2),   # 11
         2: (1 - 1j) / np.sqrt(2)     # 10
     }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+
+    idx_to_bits = {0: (0, 0), 1: (0, 1), 3: (1, 1), 2: (1, 0)}
+    keys = list(constellation.keys())
+    points = np.array([constellation[k] for k in keys])
+
+    symbols = np.asarray(symbols)
+    n = len(symbols)
+    bits = np.empty(2 * n, dtype=int)
+    for i, s in enumerate(symbols):
+        distances = np.abs(points - s)
+        best_key = keys[int(np.argmin(distances))]
+        b0, b1 = idx_to_bits[best_key]
+        bits[2 * i] = b0
+        bits[2 * i + 1] = b1
+    return bits
 
 
 def qam16_demodulate(symbols):
     """
     16-QAM解调
-    
+
     任务要求：
     - 输入：接收到的复数符号序列
     - 输出：恢复的比特序列（长度是符号数的4倍）
     - 使用最小欧氏距离判决
-    
+
     参数:
         symbols: 接收到的复数符号数组
-    
+
     返回:
         bits: 恢复的比特数组
-    
+
     提示：
     - 16-QAM有16个参考星座点
     - 可以分别对I路和Q路进行判决，简化计算
@@ -113,13 +119,28 @@ def qam16_demodulate(symbols):
         -2/√10 ~ 0 → 11
         < -2/√10 → 10
     """
-    
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+
+    norm = np.sqrt(10)
+    threshold = 2 / norm
+
+    def decide_axis(vals):
+        b_hi = np.where(vals > 0, 0, 1)          # 正半轴->0, 负半轴->1
+        b_lo = np.where(np.abs(vals) > threshold, 0, 1)  # 外层(幅值3)->0, 内层(幅值1)->1
+        return b_hi, b_lo
+
+    symbols = np.asarray(symbols)
+    real = np.real(symbols)
+    imag = np.imag(symbols)
+    i_hi, i_lo = decide_axis(real)
+    q_hi, q_lo = decide_axis(imag)
+
+    n = len(symbols)
+    bits = np.empty(4 * n, dtype=int)
+    bits[0::4] = i_hi
+    bits[1::4] = i_lo
+    bits[2::4] = q_hi
+    bits[3::4] = q_lo
+    return bits
 
 
 def test_demodulation():
@@ -129,11 +150,11 @@ def test_demodulation():
     """
     from modulation import bpsk_modulate, qpsk_modulate, qam16_modulate
     from utils import add_awgn, calculate_ber
-    
+
     print("=" * 50)
     print("解调测试")
     print("=" * 50)
-    
+
     # 测试BPSK
     print("\n1. 测试BPSK解调...")
     try:
@@ -148,7 +169,7 @@ def test_demodulation():
         print("   ⏸️ BPSK解调尚未实现")
     except Exception as e:
         print(f"   ❌ BPSK解调测试失败: {e}")
-    
+
     # 测试QPSK
     print("\n2. 测试QPSK解调...")
     try:
@@ -163,7 +184,7 @@ def test_demodulation():
         print("   ⏸️ QPSK解调尚未实现")
     except Exception as e:
         print(f"   ❌ QPSK解调测试失败: {e}")
-    
+
     # 测试16-QAM
     print("\n3. 测试16-QAM解调...")
     try:
@@ -178,7 +199,7 @@ def test_demodulation():
         print("   ⏸️ 16-QAM解调尚未实现")
     except Exception as e:
         print(f"   ❌ 16-QAM解调测试失败: {e}")
-    
+
     print("\n" + "=" * 50)
 
 

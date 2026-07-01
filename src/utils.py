@@ -11,11 +11,15 @@ import os
 
 def setup_chinese_font():
     """
-    设置matplotlib支持中文显示
+    设置matplotlib支持中文显示（跨平台：Windows/Mac/Linux 自动探测可用字体）
     """
     try:
-        # Windows系统使用微软雅黑
-        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Arial Unicode MS']
+        candidates = ['Microsoft YaHei', 'SimHei', 'Arial Unicode MS',
+                       'PingFang SC', 'Noto Sans CJK SC', 'Noto Sans CJK JP',
+                       'WenQuanYi Zen Hei', 'Heiti SC']
+        available = {f.name for f in font_manager.fontManager.ttflist}
+        usable = [f for f in candidates if f in available]
+        plt.rcParams['font.sans-serif'] = usable if usable else candidates
         plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
     except Exception:
         print("警告: 无法设置中文字体，图表标签可能显示为方框")
