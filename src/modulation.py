@@ -36,16 +36,8 @@ def bpsk_modulate(bits):
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
     
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
-    
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+    # BPSK: 0 → +1, 1 → -1
+    return (1.0 - 2.0 * np.asarray(bits, dtype=float)).astype(complex)
 
 
 def qpsk_modulate(bits):
@@ -83,17 +75,13 @@ def qpsk_modulate(bits):
     # 检查输入长度
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
-    
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+
+    bits = np.asarray(bits, dtype=float)
+    pairs = bits.reshape(-1, 2)
+    # 格雷码: bit0→Q, bit1→I (0→+1, 1→-1)
+    i_part = 1.0 - 2.0 * pairs[:, 1]  # I
+    q_part = 1.0 - 2.0 * pairs[:, 0]  # Q
+    return (i_part + 1j * q_part) / np.sqrt(2)
 
 
 def qam16_modulate(bits):
@@ -133,28 +121,21 @@ def qam16_modulate(bits):
     # 检查输入长度
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
-    
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/4, 4)的形状
-    # 2. 对每组4个比特：
-    #    - 前2位映射到I分量（实部）
-    #    - 后2位映射到Q分量（虚部）
-    # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
-    # 4. 归一化：除以√10使平均功率为1
-    
-    # 格雷码映射字典（可选使用）
-    gray_map = {
-        (0, 0): 3,
-        (0, 1): 1,
-        (1, 1): -1,
-        (1, 0): -3
-    }
-    
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+
+    bits = np.asarray(bits, dtype=int)
+    groups = bits.reshape(-1, 4)
+    # 格雷码: 00→+3, 01→+1, 11→-1, 10→-3
+    gray = np.array([3, 1, -1, -3], dtype=float)
+    i_idx = groups[:, 0] * 2 + groups[:, 1]  # 前2位→I
+    q_idx = groups[:, 2] * 2 + groups[:, 3]  # 后2位→Q
+    # 格雷索引转换: 00→0, 01→1, 11→2, 10→3
+    i_gray = i_idx.copy()
+    i_gray[i_idx == 2] = 3
+    i_gray[i_idx == 3] = 2
+    q_gray = q_idx.copy()
+    q_gray[q_idx == 2] = 3
+    q_gray[q_idx == 3] = 2
+    return (gray[i_gray] + 1j * gray[q_gray]) / np.sqrt(10)
 
 
 def test_modulation():

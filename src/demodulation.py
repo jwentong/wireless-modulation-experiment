@@ -35,10 +35,7 @@ def bpsk_demodulate(symbols):
         [0 1 0]
     """
     
-    # TODO: 实现BPSK解调
-    # 提示：使用np.real()获取实部，然后判断正负
-    
-    raise NotImplementedError("请实现BPSK解调函数")
+    return (np.real(symbols) < 0).astype(int)
 
 
 def qpsk_demodulate(symbols):
@@ -73,20 +70,21 @@ def qpsk_demodulate(symbols):
     """
     
     # 定义QPSK参考星座点（格雷码）
-    constellation = {
-        0: (1 + 1j) / np.sqrt(2),    # 00
-        1: (-1 + 1j) / np.sqrt(2),   # 01
-        3: (-1 - 1j) / np.sqrt(2),   # 11
-        2: (1 - 1j) / np.sqrt(2)     # 10
-    }
-    
-    # TODO: 实现QPSK解调
-    # 提示步骤：
-    # 1. 对每个接收符号，计算到4个参考点的欧氏距离
-    # 2. 找到距离最小的参考点
-    # 3. 将参考点的索引转换为2个比特
-    
-    raise NotImplementedError("请实现QPSK解调函数")
+    ref = np.array([
+        (1 + 1j) / np.sqrt(2),    # 00 → index 0
+        (-1 + 1j) / np.sqrt(2),   # 01 → index 1
+        (-1 - 1j) / np.sqrt(2),   # 11 → index 3
+        (1 - 1j) / np.sqrt(2)     # 10 → index 2
+    ])
+    gray_idx = np.array([0, 1, 3, 2])  # 实际格雷码索引
+    symbols = np.asarray(symbols, dtype=complex)
+    bits_out = np.zeros(len(symbols) * 2, dtype=int)
+    for i, s in enumerate(symbols):
+        dists = np.abs(s - ref) ** 2
+        nearest = gray_idx[np.argmin(dists)]
+        bits_out[2 * i] = (nearest >> 1) & 1
+        bits_out[2 * i + 1] = nearest & 1
+    return bits_out
 
 
 def qam16_demodulate(symbols):
@@ -114,12 +112,23 @@ def qam16_demodulate(symbols):
         < -2/√10 → 10
     """
     
-    # TODO: 实现16-QAM解调
-    # 提示：可以采用两种方法
-    # 方法1：遍历16个参考点，找最小距离（简单但慢）
-    # 方法2：分别判决I路和Q路（快速且实用）
-    
-    raise NotImplementedError("请实现16-QAM解调函数")
+    # 分别对I路和Q路进行格雷码判决
+    symbols = np.asarray(symbols, dtype=complex)
+    norm = 1.0 / np.sqrt(10)
+    # 判决阈值: -2, 0, +2 (乘以norm后)
+    thresholds = np.array([-2, 0, 2]) * norm
+    gray_bits = np.array([[1, 0], [1, 1], [0, 1], [0, 0]])  # 10,11,01,00
+    bits_out = np.zeros(len(symbols) * 4, dtype=int)
+    for i, s in enumerate(symbols):
+        i_val = s.real
+        q_val = s.imag
+        i_idx = np.digitize(i_val, thresholds)  # 0-3
+        q_idx = np.digitize(q_val, thresholds)
+        i_idx = max(0, min(3, i_idx))
+        q_idx = max(0, min(3, q_idx))
+        bits_out[4 * i:4 * i + 2] = gray_bits[i_idx]
+        bits_out[4 * i + 2:4 * i + 4] = gray_bits[q_idx]
+    return bits_out
 
 
 def test_demodulation():
