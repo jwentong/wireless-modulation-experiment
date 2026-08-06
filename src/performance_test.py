@@ -4,9 +4,13 @@
 """
 
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 from modulation import bpsk_modulate, qpsk_modulate, qam16_modulate
 from demodulation import bpsk_demodulate, qpsk_demodulate, qam16_demodulate
 from utils import add_awgn, calculate_ber, plot_ber_curve, generate_random_bits
+
 
 
 def test_ber_performance(modulation_scheme='BPSK', num_bits=10000, snr_range=None):
